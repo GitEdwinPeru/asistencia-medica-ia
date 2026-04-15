@@ -1,0 +1,145 @@
+:root {
+--medical-primary: #2c3e50;
+--medical-blue: #3498db;
+--medical-bg: #f4f7f9;
+--sidebar-width: 260px;
+}
+
+body { 
+background-color: var(--medical-bg); 
+font-family: 'Inter', sans-serif; 
+color: #444; }
+
+/* Sidebar Elegante */
+.sidebar {
+width: var(--sidebar-width);
+height: 100vh;
+background: #ffffff;
+position: fixed;
+border-right: 1px solid #e3e8ee;
+padding: 20px 0;
+z-index: 1000;
+}
+.nav-link {
+padding: 12px 25px;
+color: #64748b;
+font-weight: 500;
+display: flex;
+align-items: center;
+transition: 0.2s;
+}
+.nav-link:hover, .nav-link.active {
+color: var(--medical-blue);
+background: #f0f7ff;
+border-right: 4px solid var(--medical-blue);
+}
+.nav-link i { 
+font-size: 1.2rem;
+margin-right: 15px; 
+}
+
+/* Contenido */
+.main-wrapper { 
+margin-left: var(--sidebar-width); 
+padding: 40px; 
+}
+
+/* Tarjetas de Datos Sutiles */
+.card-stat {
+background: #ffffff;
+border: none;
+border-radius: 12px;
+padding: 24px;
+box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+display: flex;
+align-items: center;
+}
+.icon-box {
+width: 50px;
+height: 50px;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.5rem;
+margin-right: 20px;
+}
+.bg-soft-blue { 
+background: #e0f2fe; 
+color: #0369a1; 
+}
+.bg-soft-green { 
+background: #dcfce7; 
+color: #15803d; 
+}
+.bg-soft-red { 
+background: #fee2e2; 
+color: #b91c1c; 
+}
+
+/* Gráficos */
+.chart-container {
+background: white;
+padding: 25px;
+border-radius: 12px;
+box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+height: 350px;
+}
+.header-title { 
+font-weight: 700; 
+color: var(--medical-primary); 
+}
+/* --- ESTILOS PARA EL LOGO Y HEADER DE SIDEBAR --- */
+
+.sidebar-header {
+    border-bottom: 1px solid #f0f4f8; /* Línea sutil divisoria */
+    margin-bottom: 15px;
+    background: linear-gradient(to bottom, #ffffff, #fafbfc); /* Fondo con ligero degradado */
+}
+
+.sidebar-logo {
+    max-width: 100px; /* Tamaño ideal para que no choque con los bordes */
+    height: auto;
+    margin-bottom: 10px;
+    /* Efecto de sombra suave para darle profundidad al logo */
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05)); 
+    transition: transform 0.3s ease;
+}
+
+.sidebar-logo:hover {
+    transform: scale(1.05); /* Efecto sutil al pasar el mouse */
+}
+
+.header-title {
+    font-size: 1.1rem;
+    letter-spacing: -0.5px;
+    color: var(--medical-primary);
+    margin-top: 5px;
+}
+
+/* Estilo para el texto pequeño debajo del logo */
+.sidebar-header small {
+    display: block;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* --- AJUSTES EXTRA PARA LA SIDEBAR --- */
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.nav.flex-column {
+    flex-grow: 1; /* Empuja los elementos hacia arriba */
+}
+
+/* Mejora para el botón de salir al final */
+.nav-link.text-danger {
+    margin-top: auto; /* Mueve el botón de salir al fondo de la sidebar */
+    margin-bottom: 20px;
+    border-top: 1px solid #fee2e2;
+}

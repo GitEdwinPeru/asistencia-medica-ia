@@ -1,0 +1,124 @@
+/* Medical Cloud - Estilos para Edición de Personal */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+    --bg-cloud: #f4f7fe;
+    --primary-blue: #4318ff;
+    --text-dark: #1b2559;
+    --text-muted: #a3aed0;
+    --warning-soft: #fff9e6;
+    --warning-dark: #92400e;
+    --border-color: #e0e5f2;
+}
+
+body {
+    background-color: var(--bg-cloud);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+}
+
+/* Tarjeta Principal */
+.card {
+    background: #ffffff;
+    border-radius: 20px !important;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* Cabecera de la tarjeta */
+.card-header {
+    background: var(--warning-soft) !important;
+    border-bottom: 1px solid #fef3c7 !important;
+    color: var(--warning-dark) !important;
+    font-size: 1.1rem;
+    padding: 20px !important;
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+}
+
+/* Diseño de Etiquetas y Campos */
+.form-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+}
+
+.form-control, .form-select {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.08);
+    outline: none;
+}
+
+/* Estado del DNI (Solo lectura) */
+.form-control[readonly] {
+    background-color: #f8fafc !important;
+    border-style: dashed;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* Separador horizontal */
+hr {
+    border-top: 1px solid var(--border-color);
+    margin: 30px 0;
+    opacity: 0.6;
+}
+
+/* Botones con estilo Cloud */
+.btn-warning {
+    background-color: #ffb800;
+    border: none;
+    color: #fff;
+    border-radius: 14px;
+    transition: all 0.3s ease;
+}
+
+.btn-warning:hover {
+    background-color: #e6a600;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 184, 0, 0.2);
+}
+
+.btn-outline-secondary {
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 14px;
+    font-weight: 600;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #f1f5f9;
+    color: var(--text-dark);
+    border-color: #cbd5e1;
+}
+
+/* Colores de énfasis para etiquetas */
+.text-primary { color: var(--primary-blue) !important; }
+.text-success { color: #059669 !important; }
+.text-info { color: #0ea5e9 !important; }
+
+/* Texto de ayuda inferior */
+.form-text {
+    font-size: 0.75rem;
+    margin-top: 8px;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+    .card-body {
+        padding: 25px !important;
+    }
+}

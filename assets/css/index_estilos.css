@@ -1,0 +1,131 @@
+/* --- CONFIGURACIÓN DE FONDO TEMÁTICA CLÍNICA --- */
+body {
+    background-color: #f4f7fa;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow-x: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Círculo azul superior izquierda */
+body::before {
+    content: "";
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    background: rgba(3, 169, 244, 0.15);
+    border-radius: 50%;
+    top: -200px;
+    left: -300px;
+    z-index: -1;
+}
+
+/* Círculo azul inferior derecha */
+body::after {
+    content: "";
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: rgba(3, 169, 244, 0.1);
+    border-radius: 50%;
+    bottom: -150px;
+    right: -200px;
+    z-index: -1;
+}
+
+/* --- TARJETA PRINCIPAL --- */
+.login-card {
+    width: 100%;
+    max-width: 450px;
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(3, 169, 244, 0.1); 
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+/* --- CONTENEDOR DE CÁMARA --- */
+#contenedor-camara {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 4/3;
+    margin: 0 auto;
+    border-radius: 15px;
+    overflow: hidden;
+    border: 5px solid white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    background-color: #000;
+}
+
+/* Espejo para video y canvas */
+#video, #overlay {
+    transform: scaleX(-1);
+}
+
+/* --- ALERTAS Y ESTADO --- */
+#status {
+    border-radius: 10px;
+    border: none;
+    background-color: #e3f2fd;
+    color: #0c5460;
+}
+
+/* --- NAVEGACIÓN Y PESTAÑAS --- */
+.card-header {
+    border-bottom: 1px solid #eee !important;
+}
+
+.nav-tabs {
+    border-bottom: none;
+    justify-content: center;
+}
+
+.nav-link {
+    color: #6c757d;
+    font-weight: bold;
+    border: none !important;
+    padding: 10px 20px;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+}
+
+.nav-link.active {
+    color: white !important;
+    background: #03a9f4 !important;
+    box-shadow: 0 4px 10px rgba(3, 169, 244, 0.3);
+}
+
+/* --- BOTONES --- */
+.btn-success {
+    background-color: #2ecc71;
+    border: none;
+    border-radius: 30px;
+    padding: 12px;
+}
+
+.btn-primary {
+    background-color: #03a9f4;
+    border: none;
+    border-radius: 10px;
+}
+#contenedor-camara {
+    position: relative;
+    width: 100%;
+    max-width: 480px; /* Tamaño estándar recomendado */
+    margin: 0 auto;
+    background-color: #000;
+    border-radius: 10px;
+    overflow: hidden;
+}
+#video {
+    width: 100%;
+    display: block;
+}
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+}

@@ -1,0 +1,7 @@
+# Ignorar carpetas de dependencias o temporales
+/node_modules
+/vendor
+.DS_Store
+
+# Ignorar configuraciones de bases de datos con contraseñas reales
+# (Es mejor subir un config-sample.php)

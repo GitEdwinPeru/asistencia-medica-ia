@@ -1,0 +1,79 @@
+:root { 
+--med-dark: #0f172a; 
+--accent: #3b82f6; 
+--bg: #f8fafc; 
+}
+body { background-color: var(--bg); 
+font-family: 'Inter', sans-serif; 
+color: var(--med-dark); }
+.main-content { 
+padding: 40px; 
+}
+.card-cloud { 
+background: white; 
+border: 1px solid #e2e8f0; 
+border-radius: 16px; 
+box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+overflow: hidden; }
+        
+/* Estilo de Pestañas */
+.nav-tabs-cloud { 
+border: none; 
+margin-bottom: 25px; 
+display: flex; gap: 8px; 
+background: #e2e8f0; 
+padding: 5px; 
+border-radius: 12px; 
+width: fit-content; 
+}
+.nav-tabs-cloud .nav-link { 
+border: none; 
+border-radius: 9px; 
+color: #64748b; 
+font-weight: 600; 
+padding: 8px 20px; 
+transition: 0.3s; 
+}
+.nav-tabs-cloud .nav-link.active { 
+background: white; 
+color: var(--accent); 
+box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+.table thead th { 
+background: #f1f5f9; 
+color: #64748b; 
+font-size: 0.75rem; 
+text-transform: uppercase; 
+padding: 15px; 
+border: none; }
+.group-icon { 
+width: 40px; 
+height: 40px; 
+background: #eff6ff; 
+color: var(--accent); 
+border-radius: 10px; 
+display: flex; 
+align-items: center; 
+justify-content: center; 
+font-size: 1.2rem; 
+}
+
+.btn-white {
+    background: #fff;
+    transition: all 0.2s;
+}
+.btn-white:hover {
+    background: #f8fafc;
+    transform: translateY(-2px);
+}
+.bg-primary-subtle {
+    background-color: #eef2ff !important;
+}
+.nav-tabs .nav-link {
+    color: #64748b;
+    font-weight: 600;
+    transition: 0.3s;
+}
+.nav-tabs .nav-link:hover {
+    background: #f1f5f9;
+}
