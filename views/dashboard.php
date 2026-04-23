@@ -44,7 +44,6 @@ $datos_asistencia = [$puntuales, $tardanzas_hoy];
     <div class="sidebar">
         <div class="sidebar-header text-center py-4 px-3">
             <img src="../assets/img/logo.png" alt="Logo Medical" class="img-fluid sidebar-logo mb-2">
-            <small class="text-muted fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">GESTIÓN HOSPITALARIA</small>
         </div>
 
         <nav class="nav flex-column mt-3">
