@@ -31,57 +31,56 @@ if ($buscar !== '') {
 } else {
     $stmt->execute();
 }
-$empleados = $stmt->fetchAll();
+$empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Personal | Medical Cloud</title>
+    <title>Lista de Empleados | AMFURI PERU S.A.C</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../assets/css/empleados_lista.css">
+    <style>
+        :root { --accent-blue: #0d6efd; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .table-container { background: white; border-radius: 15px; overflow: hidden; }
+        .table thead { background-color: #f1f4f9; }
+        .btn-action { padding: 5px 10px; border-radius: 8px; }
+    </style>
 </head>
-
 <body>
-    <div class="main-content">
+    <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="fw-bold mb-1" style="letter-spacing: -1px;">Directorio Médicos</h1>
-                <p class="text-muted small">Administra la información de todo el personal registrado en el sistema.</p>
-            </div>
-            <a href="registro_empleado.php" class="btn btn-dark px-4 fw-bold" style="border-radius: 10px;">
-                <i class="bi bi-person-plus me-2"></i>Registrar Nuevo
+            <h3 class="fw-bold text-dark">Gestión de Personal</h3>
+            <a href="registro_empleado.php" class="btn btn-primary shadow-sm">
+                <i class="bi bi-person-plus-fill me-2"></i>Nuevo Empleado
             </a>
         </div>
 
-        <div class="card-cloud mb-4 p-3">
-            <form method="GET" class="row g-2 align-items-center">
-                <div class="col-md-10">
-                    <div class="input-group search-container">
-                        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
-                        <input type="text" name="buscar" class="form-control border-0 shadow-none" placeholder="Buscar por Nombre, DNI o Apellido..." value="<?= htmlspecialchars($buscar) ?>">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-2">
+                    <div class="col-md-10">
+                        <input type="text" name="buscar" class="form-control" placeholder="Buscar por DNI o Apellidos..." value="<?= htmlspecialchars($buscar) ?>">
                     </div>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold" style="border-radius: 10px; padding: 12px;">Filtrar</button>
-                </div>
-            </form>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-dark w-100">Buscar</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
-        <div class="card-cloud">
+        <div class="table-container shadow-sm">
             <div class="table-responsive">
-                <table class="table align-middle mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th class="ps-4">Personal</th>
-                            <th>Identificación</th>
-                            <th>Especialidad / Cargo</th>
-                            <th>Equipo / Sede</th>
+                            <th class="ps-4">DNI</th>
+                            <th>Nombres y Apellidos</th>
+                            <th>Cargo</th>
+                            <th>Sede / Distrito</th>
                             <th class="text-end pe-4">Acciones</th>
                         </tr>
                     </thead>
@@ -89,44 +88,18 @@ $empleados = $stmt->fetchAll();
                         <?php if (count($empleados) > 0): ?>
                             <?php foreach ($empleados as $emp): ?>
                                 <tr>
-                                    <td class="ps-4">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                                <i class="bi bi-person text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold text-dark"><?= htmlspecialchars($emp['nomb_empl'] . " " . $emp['apat_empl']) ?></div>
-                                                <small class="text-muted">ID Sistema: #<?= $emp['pk_id_empleado'] ?></small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="text-dark fw-medium"><?= htmlspecialchars($emp['dni_empl']) ?></span>
-                                    </td>
-                                    <td>
-                                        <span class="badge-medical bg-cargo">
-                                            <i class="bi bi-briefcase"></i> <?= htmlspecialchars($emp['nomb_carg']) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex flex-column gap-1">
-                                            <span class="badge-medical bg-grupo">
-                                                <i class="bi bi-people"></i> <?= htmlspecialchars($emp['nomb_grup']) ?>
-                                            </span>
-                                            <span class="badge-medical bg-sede">
-                                                <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($emp['nomb_dist']) ?>
-                                            </span>
-                                        </div>
-                                    </td>
+                                    <td class="ps-4 fw-semibold"><?= $emp['dni_empl'] ?></td>
+                                    <td><?= htmlspecialchars($emp['nomb_empl'] . ' ' . $emp['apat_empl']) ?></td>
+                                    <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($emp['nomb_carg']) ?></span></td>
+                                    <td><?= htmlspecialchars($emp['nomb_dist']) ?></td>
                                     <td class="text-end pe-4">
-                                        <div class="d-flex justify-content-end gap-2">
-                                            <a href="asistencia_detalle.php?id=<?= $emp['pk_id_empleado'] ?>" class="btn-action btn-light border text-primary" title="Ver Historial">
-                                                <i class="bi bi-calendar3"></i>
-                                            </a>
-                                            <a href="editar_empleado.php?id=<?= $emp['pk_id_empleado'] ?>" class="btn-action btn-light border text-warning" title="Editar Perfil">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                        </div>
+                                        <a href="editar_empleado.php?id=<?= $emp['pk_id_empleado'] ?>" class="btn btn-sm btn-outline-primary btn-action" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        
+                                        <button onclick="confirmarEliminar(<?= $emp['pk_id_empleado'] ?>, '<?= htmlspecialchars($emp['nomb_empl']) ?>')" class="btn btn-sm btn-outline-danger btn-action" title="Eliminar">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -154,12 +127,35 @@ $empleados = $stmt->fetchAll();
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Alerta de confirmación para eliminar
+        function confirmarEliminar(id, nombre) {
+            Swal.fire({
+                title: '¿Dar de baja?',
+                text: `El empleado "${nombre}" pasará a estado inactivo.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, dar de baja',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `../models/eliminar_empleado.php?id=${id}`;
+                }
+            })
+        }
+
+        // Notificación de éxito al actualizar o eliminar
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('status') === 'success') {
+        const status = urlParams.get('status');
+        const msg = urlParams.get('msg');
+
+        if (status === 'success' || msg === 'eliminado') {
             Swal.fire({
                 icon: 'success',
-                title: '¡Actualizado!',
-                text: 'La información del personal se guardó correctamente.',
+                title: '¡Operación exitosa!',
+                text: msg === 'eliminado' ? 'El personal ha sido dado de baja.' : 'Información actualizada correctamente.',
                 timer: 2500,
                 showConfirmButton: false,
                 toast: true,

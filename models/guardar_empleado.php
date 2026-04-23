@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        // Verificar duplicados
+        // 1. Verificar duplicados por DNI
         $stmt_check = $pdo->prepare("SELECT pk_id_empleado FROM empleado WHERE dni_empl = ?");
         $stmt_check->execute([$dni]);
         if ($stmt_check->fetch()) {
@@ -31,23 +31,47 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit;
         }
 
-        // Insertar en la tabla empleado
+        /**
+         * 2. Ajuste según tu base de datos:
+         * - Cambiado 'telf_empl' por 'celu_empl' según tu esquema
+         * - Se incluye 'gene_empl' asumiendo que ya ejecutaste el ALTER TABLE
+         */
         $sql = "INSERT INTO empleado (
-                    nomb_empl, apat_empl, amat_empl, dni_empl, 
-                    gene_empl, telf_empl, dire_empl,
-                    rostro_embedding, id_distrito, id_cargo, id_grupo, esta_empl
+                    nomb_empl, 
+                    apat_empl, 
+                    amat_empl, 
+                    dni_empl, 
+                    gene_empl, 
+                    celu_empl, 
+                    dire_empl,
+                    rostro_embedding, 
+                    id_distrito, 
+                    id_cargo, 
+                    id_grupo, 
+                    esta_empl
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
         
         $stmt = $pdo->prepare($sql);
+        
+        // Ejecución con el orden exacto de los campos anteriores
         $stmt->execute([
-            $nombre, $apat, $amat, $dni, 
-            $genero, $telefono, $direccion,
-            $descriptor, $id_distrito, $id_cargo, $id_grupo
+            $nombre, 
+            $apat, 
+            $amat, 
+            $dni, 
+            $genero, 
+            $telefono, // Se guarda en celu_empl
+            $direccion,
+            $descriptor, 
+            $id_distrito, 
+            $id_cargo, 
+            $id_grupo
         ]);
 
         echo json_encode(['status' => 'success', 'message' => 'Personal registrado exitosamente en la red médica.']);
 
     } catch (PDOException $e) {
-        echo json_encode(['status' => 'error', 'message' => 'Error de integración: ' . $e->getMessage()]);
+        // Captura errores de SQL como columnas inexistentes
+        echo json_encode(['status' => 'error', 'message' => 'Error de base de datos: ' . $e->getMessage()]);
     }
 }

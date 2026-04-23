@@ -2,20 +2,18 @@ const video = document.getElementById('video');
 const status = document.getElementById('status');
 const btnMarcar = document.getElementById('btn-marcar-asistencia');
 
-// Pesos de la IA desde GitHub
-const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/';
-
+// Ruta a los modelos locales (asegúrate de tener los 7 archivos descargados)
+const MODEL_URL = '../assets/models/';
 let faceMatcher = null;
 let idEmpleadoDetectado = null;
 
-// Función para asegurar que la ruta al modelo sea correcta desde /views/
 const obtenerRutaModel = (archivo) => `../models/${archivo}`;
 
 async function iniciarSistema() {
     try {
         status.innerHTML = "<span class='badge bg-info p-2 animate-pulse'>Cargando Modelos locales...</span>";
 
-        // 1. Cargar redes neuronales
+        // 1. Cargar redes neuronales desde la carpeta local
         await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
             faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
@@ -24,21 +22,17 @@ async function iniciarSistema() {
         
         console.log("IA Cargada desde servidor local");
 
-        // 2. Obtener empleados y sus rostros
+        // 2. IMPORTANTE: Iniciamos la cámara antes de cargar la base de datos para evitar bloqueos visuales
+        await iniciarCamara();
+
+        // 3. Obtener empleados y sus rostros
         const res = await fetch(obtenerRutaModel('obtener_empleados_fotos.php'));
         const textoBruto = await res.text();
         
         let empleados = [];
-        try {
-            // Buscamos donde empieza el JSON real por si PHP mandó un error de texto antes
-            const indiceJson = textoBruto.indexOf('[');
-            if (indiceJson !== -1) {
-                empleados = JSON.parse(textoBruto.substring(indiceJson));
-            } else {
-                throw new Error("Respuesta del servidor no es JSON válido");
-            }
-        } catch (e) {
-            console.error("Error en formato de datos:", textoBruto);
+        const indiceJson = textoBruto.indexOf('[');
+        if (indiceJson !== -1) {
+            empleados = JSON.parse(textoBruto.substring(indiceJson));
         }
         
         if (empleados.length > 0) {
@@ -50,56 +44,65 @@ async function iniciarSistema() {
                 } catch (err) { return null; }
             }).filter(d => d !== null);
 
-            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6); // 0.6 de precisión
+            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+            console.log("Base de datos de rostros lista");
         }
 
-        iniciarCamara();
     } catch (error) {
-        console.error(error);
-        status.innerHTML = "<span class='badge bg-danger'>Error al iniciar sistema</span>";
+        console.error("Error crítico:", error);
+        status.innerHTML = "<span class='badge bg-danger'>Error: Revisa consola o archivos de modelos</span>";
     }
 }
 
-function iniciarCamara() {
-    navigator.mediaDevices.getUserMedia({ video: {} })
-        .then(stream => { 
-            video.srcObject = stream; 
-            reconocimientoContinuo(); 
-        })
-        .catch(err => { 
-            console.error(err);
-            status.innerHTML = "<span class='badge bg-danger'>Cámara no encontrada</span>"; 
-        });
+async function iniciarCamara() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        video.srcObject = stream;
+        
+        // Esperamos a que el video esté listo para empezar el reconocimiento
+        video.onloadedmetadata = () => {
+            video.play();
+            reconocimientoContinuo();
+        };
+    } catch (err) {
+        console.error("Error de cámara:", err);
+        status.innerHTML = "<span class='badge bg-danger'>Cámara no encontrada o bloqueada</span>";
+    }
 }
 
 function reconocimientoContinuo() {
     setInterval(async () => {
-        if (!faceMatcher) return;
+        // Si aún no carga la base de datos de empleados, solo mostramos que está buscando
+        if (video.paused || video.ended) return;
 
         const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
             .withFaceLandmarks()
             .withFaceDescriptor();
 
         if (detection) {
-            const match = faceMatcher.findBestMatch(detection.descriptor);
-            
-            if (match.label !== 'unknown') {
-                idEmpleadoDetectado = match.label;
-                status.innerHTML = `<span class='badge bg-success p-2 shadow-sm'>Identificado ID: ${idEmpleadoDetectado}</span>`;
-                btnMarcar.disabled = false;
+            // Si ya tenemos el faceMatcher cargado, comparamos
+            if (faceMatcher) {
+                const match = faceMatcher.findBestMatch(detection.descriptor);
+                
+                if (match.label !== 'unknown') {
+                    idEmpleadoDetectado = match.label;
+                    status.innerHTML = `<span class='badge bg-success p-2 shadow-sm'>Identificado ID: ${idEmpleadoDetectado}</span>`;
+                    btnMarcar.disabled = false;
+                } else {
+                    idEmpleadoDetectado = null;
+                    status.innerHTML = "<span class='badge bg-secondary p-2'>Rostro no reconocido</span>";
+                    btnMarcar.disabled = true;
+                }
             } else {
-                idEmpleadoDetectado = null;
-                status.innerHTML = "<span class='badge bg-secondary p-2'>Rostro no reconocido</span>";
-                btnMarcar.disabled = true;
+                status.innerHTML = "<span class='badge bg-info p-2'>IA lista, cargando personal...</span>";
             }
         } else {
             status.innerHTML = "<span class='badge bg-warning text-dark p-2'>Buscando rostro...</span>";
             btnMarcar.disabled = true;
         }
-    }, 600);
+    }, 500); // Frecuencia de 500ms para mejor respuesta
 }
 
-// Evento de clic para registrar
 btnMarcar.addEventListener('click', async () => {
     if (!idEmpleadoDetectado) return;
     
@@ -118,17 +121,14 @@ btnMarcar.addEventListener('click', async () => {
         Swal.fire({
             icon: data.status === 'success' ? 'success' : 'error',
             title: data.message,
-            text: data.detalle || '',
-            timer: 4000
+            timer: 3000
         });
 
     } catch (error) {
-        console.error("Error en registro:", error);
         Swal.fire('Error', 'Fallo en la comunicación con el servidor', 'error');
     } finally {
         btnMarcar.disabled = false;
     }
 });
 
-// Arrancar
 iniciarSistema();

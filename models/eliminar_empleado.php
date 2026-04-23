@@ -4,13 +4,22 @@ require_once '../config/db.php';
 if (isset($_GET['id'])) {
     $id = intval($_GET['id']);
     try {
-        // Borrado lógico: cambiamos el estado a 0 (Inactivo)
-        $sql = "UPDATE empleado SET esta_empl = 0 WHERE pk_id_empleado = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id]);
-        
-        header("Location: ../views/empleados_lista.php?msg=eliminado");
+        $pdo->beginTransaction();
+
+        // 1. Primero eliminamos sus asistencias (evita error de integridad)
+        $sqlAsis = "DELETE FROM asistencia WHERE id_empleado = ?";
+        $stmtAsis = $pdo->prepare($sqlAsis);
+        $stmtAsis->execute([$id]);
+
+        // 2. Ahora sí eliminamos al empleado definitivamente
+        $sqlEmp = "DELETE FROM empleado WHERE pk_id_empleado = ?";
+        $stmtEmp = $pdo->prepare($sqlEmp);
+        $stmtEmp->execute([$id]);
+
+        $pdo->commit();
+        header("Location: ../views/empleados_lista.php?msg=eliminado_total");
     } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+        $pdo->rollBack();
+        echo "Error al eliminar: " . $e->getMessage();
     }
 }
