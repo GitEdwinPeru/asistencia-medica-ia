@@ -1,8 +1,8 @@
 const video = document.getElementById('video');
 const status = document.getElementById('status');
 const btnMarcar = document.getElementById('btn-marcar-asistencia');
+const canvas = document.getElementById('overlay'); // Asegúrate de tener este canvas en tu HTML
 
-// Ruta a los modelos locales (asegúrate de tener los 7 archivos descargados)
 const MODEL_URL = '../assets/models/';
 let faceMatcher = null;
 let idEmpleadoDetectado = null;
@@ -13,19 +13,20 @@ async function iniciarSistema() {
     try {
         status.innerHTML = "<span class='badge bg-info p-2 animate-pulse'>Cargando Modelos locales...</span>";
 
-        // 1. Cargar redes neuronales desde la carpeta local
+        // 1. Cargar redes neuronales incluyendo expresiones
         await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
             faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+            faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
         ]);
         
-        console.log("IA Cargada desde servidor local");
+        console.log("IA Cargada con expresiones desde servidor local");
 
-        // 2. IMPORTANTE: Iniciamos la cámara antes de cargar la base de datos para evitar bloqueos visuales
+        // 2. Iniciar cámara
         await iniciarCamara();
 
-        // 3. Obtener empleados y sus rostros
+        // 3. Obtener empleados para el reconocimiento
         const res = await fetch(obtenerRutaModel('obtener_empleados_fotos.php'));
         const textoBruto = await res.text();
         
@@ -50,7 +51,7 @@ async function iniciarSistema() {
 
     } catch (error) {
         console.error("Error crítico:", error);
-        status.innerHTML = "<span class='badge bg-danger'>Error: Revisa consola o archivos de modelos</span>";
+        status.innerHTML = "<span class='badge bg-danger'>Error al cargar el sistema</span>";
     }
 }
 
@@ -59,28 +60,39 @@ async function iniciarCamara() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
         video.srcObject = stream;
         
-        // Esperamos a que el video esté listo para empezar el reconocimiento
         video.onloadedmetadata = () => {
             video.play();
             reconocimientoContinuo();
         };
     } catch (err) {
-        console.error("Error de cámara:", err);
-        status.innerHTML = "<span class='badge bg-danger'>Cámara no encontrada o bloqueada</span>";
+        status.innerHTML = "<span class='badge bg-danger'>Cámara bloqueada</span>";
     }
 }
 
 function reconocimientoContinuo() {
+    const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
+    faceapi.matchDimensions(canvas, displaySize);
+
     setInterval(async () => {
-        // Si aún no carga la base de datos de empleados, solo mostramos que está buscando
         if (video.paused || video.ended) return;
 
+        // Detección con landmarks y expresiones para el efecto visual
         const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
             .withFaceLandmarks()
-            .withFaceDescriptor();
+            .withFaceDescriptor()
+            .withFaceExpressions();
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (detection) {
-            // Si ya tenemos el faceMatcher cargado, comparamos
+            const resizedDetections = faceapi.resizeResults(detection, displaySize);
+            
+            // Dibujar cuadro, puntos y expresiones (estilo solicitado)
+            faceapi.draw.drawDetections(canvas, resizedDetections);
+            faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+            faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
+
             if (faceMatcher) {
                 const match = faceMatcher.findBestMatch(detection.descriptor);
                 
@@ -93,14 +105,12 @@ function reconocimientoContinuo() {
                     status.innerHTML = "<span class='badge bg-secondary p-2'>Rostro no reconocido</span>";
                     btnMarcar.disabled = true;
                 }
-            } else {
-                status.innerHTML = "<span class='badge bg-info p-2'>IA lista, cargando personal...</span>";
             }
         } else {
             status.innerHTML = "<span class='badge bg-warning text-dark p-2'>Buscando rostro...</span>";
             btnMarcar.disabled = true;
         }
-    }, 500); // Frecuencia de 500ms para mejor respuesta
+    }, 500);
 }
 
 btnMarcar.addEventListener('click', async () => {
@@ -125,7 +135,7 @@ btnMarcar.addEventListener('click', async () => {
         });
 
     } catch (error) {
-        Swal.fire('Error', 'Fallo en la comunicación con el servidor', 'error');
+        Swal.fire('Error', 'Fallo en la comunicación', 'error');
     } finally {
         btnMarcar.disabled = false;
     }

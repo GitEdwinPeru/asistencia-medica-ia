@@ -10,10 +10,12 @@ async function cargarModelosYCamara() {
     try {
         statusIA.innerHTML = "<span class='text-primary'>Cargando motor de IA...</span>";
         
+        // Carga de modelos incluyendo FaceExpressionNet para las emociones
         await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
             faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+            faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
         ]);
 
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
@@ -25,16 +27,24 @@ async function cargarModelosYCamara() {
             faceapi.matchDimensions(canvas, displaySize);
 
             setInterval(async () => {
+                // Detección extendida con landmarks y expresiones
                 const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
                     .withFaceLandmarks()
-                    .withFaceDescriptor();
+                    .withFaceDescriptor()
+                    .withFaceExpressions();
 
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 if (detection) {
                     const resizedDetections = faceapi.resizeResults(detection, displaySize);
+                    
+                    // Dibujo de los elementos visuales solicitados
                     faceapi.draw.drawDetections(canvas, resizedDetections);
+                    faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+                    faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
 
+                    // Preparación de datos para el envío
                     descriptorInput.value = JSON.stringify(Array.from(detection.descriptor));
                     statusIA.innerHTML = "<span class='text-success fw-bold'>Rostro Detectado ✓</span>";
                     btnGuardar.disabled = false;
@@ -47,9 +57,11 @@ async function cargarModelosYCamara() {
 
     } catch (error) {
         statusIA.innerHTML = "<span class='text-danger'>Error: Verifique assets/models/</span>";
+        console.error(error);
     }
 }
 
+// Lógica de envío del formulario
 document.getElementById('formRegistroEmpleado').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
