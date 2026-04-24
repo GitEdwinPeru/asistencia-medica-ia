@@ -112,6 +112,18 @@ hr {
     font-size: 0.75rem;
     margin-top: 8px;
 }
+body {
+background-color: #f4f7f6;
+}
+
+.img-edit {
+width: 120px;
+height: 120px;
+object-fit: cover;
+border-radius: 15px;
+border: 3px solid #fff;
+shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
 
 /* Responsividad */
 @media (max-width: 768px) {

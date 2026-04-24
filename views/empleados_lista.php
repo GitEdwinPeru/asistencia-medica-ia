@@ -1,6 +1,11 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-if (!isset($_SESSION['admin_id'])) { header("Location: index.php"); exit(); }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: index.php");
+    exit();
+}
 require_once '../config/db.php';
 
 $buscar = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
@@ -22,26 +27,30 @@ if ($buscar !== '') {
 $sql .= " ORDER BY e.pk_id_empleado DESC";
 
 $stmt = $pdo->prepare($sql);
-if ($buscar !== '') { $stmt->execute([':query' => "%$buscar%"]); } else { $stmt->execute(); }
+if ($buscar !== '') {
+    $stmt->execute([':query' => "%$buscar%"]);
+} else {
+    $stmt->execute();
+}
 $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Personal - AMFURI PERU S.A.C</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
-        .table-container { background: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .img-empleado { width: 45px; height: 45px; object-fit: cover; border-radius: 8px; border: 2px solid #eee; }
-        .info-principal { font-weight: 600; color: #2c3e50; }
-        .info-secundaria { font-size: 0.82rem; color: #7f8c8d; }
-    </style>
+    <link rel="stylesheet" href="../assets/css/empleados_lista.css">
 </head>
 <body>
     <div class="container-fluid py-5 px-4">
+        <div class="mb-3">
+            <a href="dashboard.php" class="btn-back">
+                <i class="bi bi-arrow-left-circle-fill me-1"></i> Volver al Panel
+            </a>
+        </div>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="fw-bold mb-0">Directorio de Colaboradores</h2>
@@ -69,8 +78,8 @@ $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php foreach ($empleados as $emp): ?>
                             <tr>
                                 <td>
-                                    <?php 
-                                        $ruta_foto = !empty($emp['foto_empl']) ? "../uploads/fotos/" . $emp['foto_empl'] : "../assets/img/default-user.png";
+                                    <?php
+                                    $ruta_foto = !empty($emp['foto_empl']) ? "../uploads/fotos/" . $emp['foto_empl'] : "../assets/img/default-user.png";
                                     ?>
                                     <img src="<?= $ruta_foto ?>" class="img-empleado" alt="Perfil">
                                 </td>
@@ -99,9 +108,6 @@ $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <a href="editar_empleado.php?id=<?= $emp['pk_id_empleado'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <button class="btn btn-sm btn-outline-dark" title="Generar Fotocheck">
-                                            <i class="bi bi-card-heading"></i>
-                                        </button>
                                         <button onclick="confirmarEliminar(<?= $emp['pk_id_empleado'] ?>, '<?= $emp['nomb_empl'] ?>')" class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash3"></i>
                                         </button>
@@ -134,4 +140,5 @@ $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     </script>
 </body>
+
 </html>
