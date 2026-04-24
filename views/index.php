@@ -42,10 +42,16 @@
                         <span class="spinner-border spinner-border-sm"></span> Inicializando IA...
                     </div>
 
-                    <button id="btn-marcar-asistencia" class="btn btn-success btn-lg w-100 shadow-sm mb-2 fw-bold" disabled>
-                        <i class="bi bi-check2-circle me-2"></i>Marcar mi Asistencia
-                    </button>
-                    <p class="text-muted small">Póngase frente a la cámara y espere a ser reconocido.</p>
+                    <div class="d-flex gap-2 mb-2">
+                        <button id="btn-marcar-asistencia" class="btn btn-success btn-lg w-100 shadow-sm fw-bold" disabled>
+                            <i class="bi bi-check2-circle me-2"></i>Entrada
+                        </button>
+                        <button id="btn-marcar-salida" class="btn btn-danger btn-lg w-100 shadow-sm fw-bold" disabled>
+                            <i class="bi bi-box-arrow-right me-2"></i>Salida
+                        </button>
+                    </div>
+                    
+                    <p class="text-muted small">Póngase frente a la cámara y elija una opción al ser reconocido.</p>
                 </div>
 
                 <div class="tab-pane fade" id="admin">
@@ -73,7 +79,7 @@
             </div>
 
             <div class="card-footer bg-white border-0 text-center pb-4">
-                <small class="text-muted">© 2026 - Sistema de Gestión Facial</small>
+                <small class="text-muted">© 2026 - Sistema de Gestión Facial - AMFURI PERU S.A.C.</small>
             </div>
         </div>
     </div>

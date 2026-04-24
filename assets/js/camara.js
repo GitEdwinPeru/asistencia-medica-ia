@@ -1,7 +1,8 @@
 const video = document.getElementById('video');
 const status = document.getElementById('status');
 const btnMarcar = document.getElementById('btn-marcar-asistencia');
-const canvas = document.getElementById('overlay'); // Asegúrate de tener este canvas en tu HTML
+const btnSalida = document.getElementById('btn-marcar-salida'); // Nuevo botón de salida
+const canvas = document.getElementById('overlay'); 
 
 const MODEL_URL = '../assets/models/';
 let faceMatcher = null;
@@ -13,7 +14,7 @@ async function iniciarSistema() {
     try {
         status.innerHTML = "<span class='badge bg-info p-2 animate-pulse'>Cargando Modelos locales...</span>";
 
-        // 1. Cargar redes neuronales incluyendo expresiones
+        // 1. Cargar redes neuronales incluyendo expresiones para el efecto visual
         await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
             faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
@@ -23,10 +24,9 @@ async function iniciarSistema() {
         
         console.log("IA Cargada con expresiones desde servidor local");
 
-        // 2. Iniciar cámara
         await iniciarCamara();
 
-        // 3. Obtener empleados para el reconocimiento
+        // 2. Obtener empleados para el reconocimiento
         const res = await fetch(obtenerRutaModel('obtener_empleados_fotos.php'));
         const textoBruto = await res.text();
         
@@ -76,7 +76,6 @@ function reconocimientoContinuo() {
     setInterval(async () => {
         if (video.paused || video.ended) return;
 
-        // Detección con landmarks y expresiones para el efecto visual
         const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
             .withFaceLandmarks()
             .withFaceDescriptor()
@@ -88,7 +87,7 @@ function reconocimientoContinuo() {
         if (detection) {
             const resizedDetections = faceapi.resizeResults(detection, displaySize);
             
-            // Dibujar cuadro, puntos y expresiones (estilo solicitado)
+            // Dibujar visuales (cuadro, puntos y expresiones)
             faceapi.draw.drawDetections(canvas, resizedDetections);
             faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
             faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
@@ -99,26 +98,33 @@ function reconocimientoContinuo() {
                 if (match.label !== 'unknown') {
                     idEmpleadoDetectado = match.label;
                     status.innerHTML = `<span class='badge bg-success p-2 shadow-sm'>Identificado ID: ${idEmpleadoDetectado}</span>`;
-                    btnMarcar.disabled = false;
+                    btnMarcar.disabled = false; // Habilita Entrada
+                    btnSalida.disabled = false;  // Habilita Salida
                 } else {
                     idEmpleadoDetectado = null;
                     status.innerHTML = "<span class='badge bg-secondary p-2'>Rostro no reconocido</span>";
                     btnMarcar.disabled = true;
+                    btnSalida.disabled = true;
                 }
             }
         } else {
             status.innerHTML = "<span class='badge bg-warning text-dark p-2'>Buscando rostro...</span>";
             btnMarcar.disabled = true;
+            btnSalida.disabled = true;
         }
     }, 500);
 }
 
-btnMarcar.addEventListener('click', async () => {
+// Función para procesar el registro (Entrada o Salida)
+async function procesarAsistencia(tipo) {
     if (!idEmpleadoDetectado) return;
     
-    btnMarcar.disabled = true;
+    const btnActual = (tipo === 'entrada') ? btnMarcar : btnSalida;
+    btnActual.disabled = true;
+
     const formData = new FormData();
     formData.append('id_empleado', idEmpleadoDetectado);
+    formData.append('tipo_registro', tipo); // Envía el tipo de acción
 
     try {
         const response = await fetch(obtenerRutaModel('registrar_asistencia.php'), {
@@ -137,8 +143,12 @@ btnMarcar.addEventListener('click', async () => {
     } catch (error) {
         Swal.fire('Error', 'Fallo en la comunicación', 'error');
     } finally {
-        btnMarcar.disabled = false;
+        btnActual.disabled = false;
     }
-});
+}
+
+// Eventos para cada botón
+btnMarcar.addEventListener('click', () => procesarAsistencia('entrada'));
+btnSalida.addEventListener('click', () => procesarAsistencia('salida'));
 
 iniciarSistema();
