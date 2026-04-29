@@ -24,6 +24,11 @@ $empleados_sin_user = $pdo->query("SELECT pk_id_empleado, nomb_empl, apat_empl F
 </head>
 <body>
     <div class="container py-5">
+        <div class="mb-3">
+            <a href="dashboard.php" class="btn btn-link text-decoration-none text-muted fw-bold">
+                <i class="bi bi-arrow-left-circle me-2"></i> Volver al Panel
+            </a>
+        </div>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fw-bold"><i class="bi bi-shield-lock me-2"></i> Usuarios del Sistema</h2>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCrearUsuario">
@@ -58,6 +63,12 @@ $empleados_sin_user = $pdo->query("SELECT pk_id_empleado, nomb_empl, apat_empl F
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="text-center mt-5">
+            <a href="dashboard.php" class="btn btn-link text-decoration-none text-muted fw-bold">
+                <i class="bi bi-arrow-left-circle me-2"></i> REGRESAR AL PANEL DE CONTROL
+            </a>
         </div>
     </div>
 
@@ -105,6 +116,20 @@ $empleados_sin_user = $pdo->query("SELECT pk_id_empleado, nomb_empl, apat_empl F
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Manejo de notificaciones
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        if (status === 'success') {
+            Swal.fire('¡Éxito!', 'El usuario ha sido creado correctamente.', 'success');
+        } else if (status === 'deleted') {
+            Swal.fire('Eliminado', 'El usuario ha sido removido del sistema.', 'success');
+        } else if (status === 'self_delete_error') {
+            Swal.fire('Error', 'No puedes eliminar tu propio usuario administrativo.', 'error');
+        } else if (status === 'error') {
+            Swal.fire('Error', 'Hubo un problema al procesar la solicitud.', 'error');
+        }
+        if (status) window.history.replaceState({}, document.title, window.location.pathname);
+
         function eliminarUsuario(id) {
             Swal.fire({
                 title: '¿Eliminar acceso?',

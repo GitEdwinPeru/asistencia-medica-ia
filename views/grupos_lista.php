@@ -110,6 +110,29 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <div class="modal fade" id="modalGrupo" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 15px;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Registrar Nuevo Grupo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="../models/guardar_grupo.php" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Nombre del Grupo</label>
+                            <input type="text" name="nomb_grup" class="form-control" placeholder="Ej. EQUIPO TÉCNICO A" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary px-4">Guardar Grupo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalEditarGrupo" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius: 15px;">
@@ -137,6 +160,21 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        // Manejo de notificaciones
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('msj')) {
+            const msj = urlParams.get('msj');
+            if (msj === 'registrado') {
+                Swal.fire('¡Éxito!', 'El grupo ha sido registrado correctamente.', 'success');
+            } else if (msj === 'editado') {
+                Swal.fire('¡Éxito!', 'El grupo ha sido actualizado correctamente.', 'success');
+            } else if (msj === 'error') {
+                Swal.fire('Error', 'Hubo un problema al procesar la solicitud.', 'error');
+            }
+            // Limpiar URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         const modalEditar = document.getElementById('modalEditarGrupo');
         if (modalEditar) {
             modalEditar.addEventListener('show.bs.modal', event => {
