@@ -75,7 +75,7 @@ document.getElementById('formRegistroEmpleado').addEventListener('submit', async
         } else {
             Swal.fire('Error', result.message, 'error');
         }
-    } catch (error) {
+    } catch {
         Swal.fire('Error', 'Fallo de servidor', 'error');
     }
 });

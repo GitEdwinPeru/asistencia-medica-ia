@@ -42,7 +42,7 @@ async function iniciarSistema() {
                     const desc = typeof emp.rostro_embedding === 'string' 
                         ? JSON.parse(emp.rostro_embedding) : emp.rostro_embedding;
                     return new faceapi.LabeledFaceDescriptors(emp.id.toString(), [new Float32Array(desc)]);
-                } catch (err) { return null; }
+                } catch { return null; }
             }).filter(d => d !== null);
 
             faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
@@ -64,7 +64,7 @@ async function iniciarCamara() {
             video.play();
             reconocimientoContinuo();
         };
-    } catch (err) {
+    } catch {
         status.innerHTML = "<span class='badge bg-danger'>Cámara bloqueada</span>";
     }
 }
@@ -140,7 +140,7 @@ async function procesarAsistencia(tipo) {
             timer: 3000
         });
 
-    } catch (error) {
+    } catch {
         Swal.fire('Error', 'Fallo en la comunicación', 'error');
     } finally {
         btnActual.disabled = false;
