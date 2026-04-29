@@ -1,4 +1,6 @@
 <?php
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 
 if (isset($_GET['id'])) {

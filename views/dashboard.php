@@ -1,11 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: index.php");
-    exit();
-}
+require_once '../config/auth.php';
+verificarSesion();
 require_once '../config/db.php';
 // --- CONSULTAS DE DATOS ---
 $total_empleados = $pdo->query("SELECT COUNT(*) FROM empleado WHERE esta_empl = 1")->fetchColumn();
@@ -53,6 +48,10 @@ $datos_asistencia = [$puntuales, $tardanzas_hoy];
                 <i class="bi bi-people-fill"></i>
                 <span>Lista de Empleados</span>
             </a>
+
+            <?php if (esAdministrador()): ?>
+            <a class="nav-link" href="usuarios_lista.php"><i class="bi bi-shield-lock"></i> Gestión Usuarios</a>
+            <?php endif; ?>
             
             <hr class="mx-3 my-4">
             

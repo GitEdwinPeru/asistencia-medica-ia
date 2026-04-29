@@ -1,6 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-if (!isset($_SESSION['admin_id'])) { header("Location: index.php"); exit(); }
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 
 $cargos = $pdo->query("SELECT * FROM cargo ORDER BY nomb_carg ASC")->fetchAll();
@@ -94,6 +94,14 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
                                     <select name="id_distrito" class="form-select">
                                         <?php foreach ($distritos as $d): ?><option value="<?= $d['pk_id_distrito'] ?>"><?= $d['nomb_dist'] ?></option><?php endforeach; ?>
                                     </select>
+                                </div>
+                            </div>
+
+                            <h6 class="section-title">Otros Datos</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <label class="form-label">Observaciones</label>
+                                    <textarea name="obsv_empl" class="form-control" rows="2" placeholder="Información adicional del colaborador..."></textarea>
                                 </div>
                             </div>
 

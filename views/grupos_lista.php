@@ -1,6 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-if (!isset($_SESSION['admin_id'])) { header("Location: index.php"); exit(); }
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 
 // Consulta para obtener grupos y contar sus integrantes activos

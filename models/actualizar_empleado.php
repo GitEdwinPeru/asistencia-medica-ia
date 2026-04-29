@@ -1,5 +1,7 @@
 <?php
 header('Content-Type: application/json'); // Cambiado a JSON para manejar la respuesta con SweetAlert
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -16,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $id_cargo    = intval($_POST['id_cargo'] ?? 0);
     $id_grupo    = intval($_POST['id_grupo'] ?? 0);
     $id_distrito = intval($_POST['id_distrito'] ?? 0);
+    $observacion = trim($_POST['obsv_empl'] ?? '');
 
     if ($id_empleado > 0 && !empty($nombre)) {
         try {
@@ -46,7 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         dire_empl = :direccion,
                         id_cargo = :cargo, 
                         id_grupo = :grupo, 
-                        id_distrito = :distrito";
+                        id_distrito = :distrito,
+                        obsv_empl = :obsv";
             
             // Solo actualizamos la columna de foto si se subió una nueva
             if ($cambio_foto) {
@@ -67,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 ':cargo'     => $id_cargo,
                 ':grupo'     => $id_grupo,
                 ':distrito'  => $id_distrito,
+                ':obsv'      => $observacion,
                 ':id'        => $id_empleado
             ];
 

@@ -1,5 +1,7 @@
 <?php
 header('Content-Type: application/json');
+require_once '../config/auth.php';
+verificarSesion();
 require_once '../config/db.php';
 
 try {

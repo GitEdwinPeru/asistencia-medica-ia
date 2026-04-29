@@ -1,6 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-if (!isset($_SESSION['admin_id'])) { header("Location: index.php"); exit(); }
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 $id = $_GET['id'] ?? null;
 if (!$id) { header("Location: empleados_lista.php"); exit(); }
@@ -129,6 +129,14 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                </div>
+                            </div>
+
+                            <h6 class="text-uppercase text-muted small fw-bold mb-3">Información Adicional</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <label class="form-label">Observaciones</label>
+                                    <textarea name="obsv_empl" class="form-control" rows="2"><?= htmlspecialchars($emp['obsv_empl'] ?? '') ?></textarea>
                                 </div>
                             </div>
 

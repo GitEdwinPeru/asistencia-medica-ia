@@ -1,8 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-// Seguridad: Solo admin puede registrar
-if (!isset($_SESSION['admin_id'])) { header("Location: ../views/index.php"); exit(); }
-
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

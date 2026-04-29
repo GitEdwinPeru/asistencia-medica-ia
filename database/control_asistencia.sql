@@ -106,7 +106,6 @@ INSERT INTO `cargo` (`pk_id_cargo`, `nomb_carg`) VALUES
 CREATE TABLE `distrito` (
   `pk_id_distrito` int(11) NOT NULL,
   `nomb_dist` varchar(100) NOT NULL,
-  `id_provincia` int(11) DEFAULT NULL,
   `obsv_dist` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -114,9 +113,9 @@ CREATE TABLE `distrito` (
 -- Volcado de datos para la tabla `distrito`
 --
 
-INSERT INTO `distrito` (`pk_id_distrito`, `nomb_dist`, `id_provincia`, `obsv_dist`) VALUES
-(1, 'HUACHO', 1, NULL),
-(3, 'HUAURA', NULL, NULL);
+INSERT INTO `distrito` (`pk_id_distrito`, `nomb_dist`, `obsv_dist`) VALUES
+(1, 'HUACHO', NULL),
+(3, 'HUAURA', NULL);
 
 -- --------------------------------------------------------
 
@@ -198,24 +197,6 @@ CREATE TABLE `login` (
 INSERT INTO `login` (`pk_id_login`, `id_empleado`, `usuario`, `clave`, `perfil`) VALUES
 (2, 1, 'admin', 'admin123', 'Administrador');
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `provincia`
---
-
-CREATE TABLE `provincia` (
-  `pk_id_provincia` int(11) NOT NULL,
-  `nomb_prov` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `provincia`
---
-
-INSERT INTO `provincia` (`pk_id_provincia`, `nomb_prov`) VALUES
-(1, 'HUAURA');
-
 --
 -- Índices para tablas volcadas
 --
@@ -237,8 +218,7 @@ ALTER TABLE `cargo`
 -- Indices de la tabla `distrito`
 --
 ALTER TABLE `distrito`
-  ADD PRIMARY KEY (`pk_id_distrito`),
-  ADD KEY `id_provincia` (`id_provincia`);
+  ADD PRIMARY KEY (`pk_id_distrito`);
 
 --
 -- Indices de la tabla `empleado`
@@ -264,12 +244,6 @@ ALTER TABLE `login`
   ADD PRIMARY KEY (`pk_id_login`),
   ADD UNIQUE KEY `usuario` (`usuario`),
   ADD KEY `id_empleado` (`id_empleado`);
-
---
--- Indices de la tabla `provincia`
---
-ALTER TABLE `provincia`
-  ADD PRIMARY KEY (`pk_id_provincia`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
@@ -312,12 +286,6 @@ ALTER TABLE `login`
   MODIFY `pk_id_login` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT de la tabla `provincia`
---
-ALTER TABLE `provincia`
-  MODIFY `pk_id_provincia` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
 -- Restricciones para tablas volcadas
 --
 
@@ -326,12 +294,6 @@ ALTER TABLE `provincia`
 --
 ALTER TABLE `asistencia`
   ADD CONSTRAINT `asistencia_ibfk_1` FOREIGN KEY (`id_empleado`) REFERENCES `empleado` (`pk_id_empleado`);
-
---
--- Filtros para la tabla `distrito`
---
-ALTER TABLE `distrito`
-  ADD CONSTRAINT `distrito_ibfk_1` FOREIGN KEY (`id_provincia`) REFERENCES `provincia` (`pk_id_provincia`);
 
 --
 -- Filtros para la tabla `empleado`

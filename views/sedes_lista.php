@@ -1,6 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-if (!isset($_SESSION['admin_id'])) { header("Location: index.php"); exit(); }
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 
 // Consulta para Sedes y conteo de personal activo por sede
@@ -73,6 +73,7 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                                 <button class="btn btn-sm btn-white border shadow-sm rounded-3 me-1 btn-edit-sede" 
                                         data-id="<?= $s['pk_id_distrito'] ?>" 
                                         data-nombre="<?= htmlspecialchars($s['nomb_dist']) ?>"
+                                        data-observacion="<?= htmlspecialchars($s['obsv_dist'] ?? '') ?>"
                                         data-bs-toggle="modal" data-bs-target="#modalEditarSede">
                                     <i class="bi bi-pencil text-primary"></i>
                                 </button>
@@ -106,6 +107,10 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                             <label class="form-label small fw-bold">Nombre del Distrito / Sede</label>
                             <input type="text" name="nomb_dist" class="form-control form-control-lg border-2" placeholder="Ej. Miraflores" required style="border-radius: 12px;">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Observaciones</label>
+                            <textarea name="obsv_dist" class="form-control border-2" rows="2" placeholder="Notas sobre esta sede..." style="border-radius: 12px;"></textarea>
+                        </div>
                         <div class="d-flex gap-2 mt-4">
                             <button type="button" class="btn btn-light w-100 fw-bold py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Cancelar</button>
                             <button type="submit" class="btn btn-primary w-100 fw-bold py-2" style="border-radius: 12px;">Crear Sede</button>
@@ -127,6 +132,10 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                             <label class="form-label small fw-bold">Nombre del Distrito</label>
                             <input type="text" name="nomb_dist" id="edit_nomb_dist" class="form-control form-control-lg border-2" required style="border-radius: 12px;">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Observaciones</label>
+                            <textarea name="obsv_dist" id="edit_obsv_dist" class="form-control border-2" rows="2" style="border-radius: 12px;"></textarea>
+                        </div>
                         <div class="d-flex gap-2 mt-4">
                             <button type="button" class="btn btn-light w-100 fw-bold py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Cancelar</button>
                             <button type="submit" class="btn btn-warning w-100 fw-bold py-2 text-white" style="border-radius: 12px;">Guardar Cambios</button>
@@ -146,6 +155,7 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
             btn.addEventListener('click', () => {
                 document.getElementById('edit_id_distrito').value = btn.getAttribute('data-id');
                 document.getElementById('edit_nomb_dist').value = btn.getAttribute('data-nombre');
+                document.getElementById('edit_obsv_dist').value = btn.getAttribute('data-observacion');
             });
         });
 

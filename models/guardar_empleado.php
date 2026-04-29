@@ -1,5 +1,7 @@
 <?php
 header('Content-Type: application/json');
+require_once '../config/auth.php';
+restringirSoloAdmin();
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -16,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $id_distrito = intval($_POST['id_distrito'] ?? 0);
     $id_cargo    = intval($_POST['id_cargo'] ?? 0);
     $id_grupo    = intval($_POST['id_grupo'] ?? 0);
+    $observacion = trim($_POST['obsv_empl'] ?? '');
     $descriptor  = $_POST['descriptor'] ?? null;
 
     // Validación básica
@@ -52,15 +55,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     nomb_empl, apat_empl, amat_empl, dni_empl, 
                     fnac_empl, gene_empl, celu_empl, emai_empl, 
                     dire_empl, id_distrito, id_cargo, id_grupo, 
-                    rostro_embedding, foto_empl, esta_empl
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+                    rostro_embedding, foto_empl, obsv_empl, esta_empl
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             $nombre, $apat, $amat, $dni, 
             $fnac, $genero, $telefono, $email, 
             $direccion, $id_distrito, $id_cargo, $id_grupo,
-            $descriptor, $nombre_foto
+            $descriptor, $nombre_foto, $observacion
         ]);
 
         echo json_encode(['status' => 'success', 'message' => 'Empleado registrado con éxito.']);

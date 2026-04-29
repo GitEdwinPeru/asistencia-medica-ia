@@ -1,16 +1,31 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: index.php");
-    exit();
-}
+require_once '../config/auth.php';
+verificarSesion();
 require_once '../config/db.php';
+
+// Parámetros de paginación
+$por_pagina = 10;
+$pagina = isset($_GET['p']) ? (int)$_GET['p'] : 1;
+if ($pagina < 1) $pagina = 1;
+$offset = ($pagina - 1) * $por_pagina;
 
 $buscar = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
 
-// Consulta actualizada con TODOS los campos importantes
+// 1. Contar total para paginación
+$count_sql = "SELECT COUNT(*) FROM empleado WHERE esta_empl = 1";
+if ($buscar !== '') {
+    $count_sql .= " AND (nomb_empl LIKE :query OR dni_empl LIKE :query OR apat_empl LIKE :query)";
+}
+$count_stmt = $pdo->prepare($count_sql);
+if ($buscar !== '') {
+    $count_stmt->execute([':query' => "%$buscar%"]);
+} else {
+    $count_stmt->execute();
+}
+$total_registros = $count_stmt->fetchColumn();
+$total_paginas = ceil($total_registros / $por_pagina);
+
+// 2. Consulta con LIMIT y OFFSET
 $sql = "SELECT e.pk_id_empleado, e.nomb_empl, e.apat_empl, e.amat_empl, e.dni_empl, 
                e.celu_empl, e.emai_empl, e.dire_empl, e.fnac_empl, e.foto_empl,
                c.nomb_carg, g.nomb_grup, d.nomb_dist
@@ -24,7 +39,7 @@ if ($buscar !== '') {
     $sql .= " AND (e.nomb_empl LIKE :query OR e.dni_empl LIKE :query OR e.apat_empl LIKE :query)";
 }
 
-$sql .= " ORDER BY e.pk_id_empleado DESC";
+$sql .= " ORDER BY e.pk_id_empleado DESC LIMIT $por_pagina OFFSET $offset";
 
 $stmt = $pdo->prepare($sql);
 if ($buscar !== '') {
@@ -56,9 +71,15 @@ $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <h2 class="fw-bold mb-0">Directorio de Colaboradores</h2>
                 <p class="text-muted">Gestión de datos maestros y fotochecks</p>
             </div>
-            <a href="registro_empleado.php" class="btn btn-primary px-4 shadow-sm">
-                <i class="bi bi-person-plus-fill me-2"></i> Nuevo Registro
-            </a>
+            <div class="d-flex gap-2">
+                <form class="d-flex" action="" method="GET">
+                    <input type="text" name="buscar" class="form-control me-2" placeholder="Buscar por DNI o Nombre..." value="<?= htmlspecialchars($buscar) ?>">
+                    <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+                </form>
+                <a href="registro_empleado.php" class="btn btn-primary px-4 shadow-sm">
+                    <i class="bi bi-person-plus-fill me-2"></i> Nuevo Registro
+                </a>
+            </div>
         </div>
 
         <div class="table-container p-3">
@@ -118,6 +139,25 @@ $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </tbody>
                 </table>
             </div>
+
+            <!-- Paginación -->
+            <?php if ($total_paginas > 1): ?>
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item <?= $pagina <= 1 ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?p=<?= $pagina - 1 ?>&buscar=<?= urlencode($buscar) ?>">Anterior</a>
+                        </li>
+                        <?php for ($i = 1; $i <= $total_paginas; $i++): ?>
+                            <li class="page-item <?= $i == $pagina ? 'active' : '' ?>">
+                                <a class="page-link" href="?p=<?= $i ?>&buscar=<?= urlencode($buscar) ?>"><?= $i ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?= $pagina >= $total_paginas ? 'disabled' : '' ?>">
+                            <a class="page-link" href="?p=<?= $pagina + 1 ?>&buscar=<?= urlencode($buscar) ?>">Siguiente</a>
+                        </li>
+                    </ul>
+                </nav>
+            <?php endif; ?>
         </div>
     </div>
 

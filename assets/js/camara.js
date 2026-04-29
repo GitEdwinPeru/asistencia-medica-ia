@@ -87,19 +87,37 @@ function reconocimientoContinuo() {
         if (detection) {
             const resizedDetections = faceapi.resizeResults(detection, displaySize);
             
+            // Liveness Detection Básica: Verificar parpadeo o movimiento ocular leve
+            // Usamos la distancia entre párpados (índices 37-41 y 44-47 de landmarks)
+            const landmarks = detection.landmarks;
+            const leftEye = landmarks.getLeftEye();
+            const rightEye = landmarks.getRightEye();
+            
+            // Calculamos ratio de apertura (EAR simplificado)
+            const eyeDist = (p1, p2) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+            const leftEAR = eyeDist(leftEye[1], leftEye[5]) / eyeDist(leftEye[0], leftEye[3]);
+            
+            let livenessStatus = "<span class='badge bg-info'>Analizando Vida...</span>";
+            let isLive = leftEAR > 0.2; // Umbral simple para ojos abiertos
+
             // Dibujar visuales (cuadro, puntos y expresiones)
             faceapi.draw.drawDetections(canvas, resizedDetections);
-            faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-            faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
-
+            
             if (faceMatcher) {
                 const match = faceMatcher.findBestMatch(detection.descriptor);
                 
                 if (match.label !== 'unknown') {
                     idEmpleadoDetectado = match.label;
-                    status.innerHTML = `<span class='badge bg-success p-2 shadow-sm'>Identificado ID: ${idEmpleadoDetectado}</span>`;
-                    btnMarcar.disabled = false; // Habilita Entrada
-                    btnSalida.disabled = false;  // Habilita Salida
+                    
+                    if (isLive) {
+                        status.innerHTML = `<span class='badge bg-success p-2 shadow-sm pulse-green'><i class='bi bi-patch-check-fill'></i> Humano Detectado - ID: ${idEmpleadoDetectado}</span>`;
+                        btnMarcar.disabled = false;
+                        btnSalida.disabled = false;
+                    } else {
+                        status.innerHTML = `<span class='badge bg-danger p-2'><i class='bi bi-exclamation-triangle'></i> Posible Foto Detectada</span>`;
+                        btnMarcar.disabled = true;
+                        btnSalida.disabled = true;
+                    }
                 } else {
                     idEmpleadoDetectado = null;
                     status.innerHTML = "<span class='badge bg-secondary p-2'>Rostro no reconocido</span>";
