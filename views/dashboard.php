@@ -7,9 +7,7 @@ if (!isset($_SESSION['admin_id'])) {
     exit();
 }
 require_once '../config/db.php';
-
 // --- CONSULTAS DE DATOS ---
-
 $total_empleados = $pdo->query("SELECT COUNT(*) FROM empleado WHERE esta_empl = 1")->fetchColumn();
 $total_hoy = $pdo->query("SELECT COUNT(*) FROM asistencia WHERE DATE(fech_ingr) = CURDATE()")->fetchColumn();
 $tardanzas_hoy = $pdo->query("SELECT COUNT(*) FROM asistencia WHERE DATE(fech_ingr) = CURDATE() AND horas_tard > '00:00:00'")->fetchColumn();
@@ -33,7 +31,6 @@ $datos_asistencia = [$puntuales, $tardanzas_hoy];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Gestión Médica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
@@ -69,7 +66,6 @@ $datos_asistencia = [$puntuales, $tardanzas_hoy];
         <div class="d-flex justify-content-between align-items-center mb-5">
             <div>
                 <h2 class="header-title mb-1">Resumen de Operaciones</h2>
-                <p class="text-muted">Bienvenido al panel de control administrativo.</p>
             </div>
             <div class="text-end">
                 <span class="badge bg-white text-dark border p-2 px-3 shadow-sm">

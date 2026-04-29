@@ -2,23 +2,18 @@
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 if (!isset($_SESSION['admin_id'])) { header("Location: index.php"); exit(); }
 require_once '../config/db.php';
-
 $id = $_GET['id'] ?? null;
 if (!$id) { header("Location: empleados_lista.php"); exit(); }
-
 // 1. Consulta para traer los datos actuales del empleado
 $stmt = $pdo->prepare("SELECT * FROM empleado WHERE pk_id_empleado = ?");
 $stmt->execute([$id]);
 $emp = $stmt->fetch(PDO::FETCH_ASSOC);
-
 if (!$emp) { header("Location: empleados_lista.php"); exit(); }
-
 // 2. Cargar catálogos para los selectores
 $cargos = $pdo->query("SELECT * FROM cargo ORDER BY nomb_carg ASC")->fetchAll();
 $grupos = $pdo->query("SELECT * FROM grupo ORDER BY nomb_grup ASC")->fetchAll();
 $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetchAll();
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>

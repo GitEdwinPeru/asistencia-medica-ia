@@ -31,7 +31,7 @@
             <div class="card-body p-4 text-center tab-content">
                 
                 <div class="tab-pane fade show active" id="asistencia">
-                    <h3 class="fw-bold mb-4 text-dark">Asistencia Facial</h3>
+                    <h3 class="fw-bold mb-4 text-dark">ASISTENCIA FACIAL</h3>
 
                     <div id="contenedor-camara">
                         <video id="video" autoplay muted playsinline></video>
@@ -55,7 +55,7 @@
                 </div>
 
                 <div class="tab-pane fade" id="admin">
-                    <h3 class="fw-bold mb-4 text-dark">Acceso al Sistema</h3>
+                    <h3 class="fw-bold mb-4 text-dark">ACCESO AL SISTEMA</h3>
                     <form action="../models/login_process.php" method="POST">
                         <div class="mb-3 text-start">
                             <label class="form-label small fw-bold">Usuario</label>
