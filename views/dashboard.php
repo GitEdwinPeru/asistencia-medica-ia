@@ -51,6 +51,7 @@ $datos_asistencia = [$puntuales, $tardanzas_hoy];
 
             <?php if (esAdministrador()): ?>
             <a class="nav-link" href="usuarios_lista.php"><i class="bi bi-shield-lock"></i> Gestión Usuarios</a>
+            <a class="nav-link ms-3 small text-muted" href="hoja_vida.php"><i class="bi bi-file-earmark-person"></i> Hoja de Vida</a>
             <?php endif; ?>
             
             <hr class="mx-3 my-4">

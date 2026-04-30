@@ -47,11 +47,13 @@ try {
         $subtitulo = "Reporte general del personal - AMFURI PERU S.A.C.";
         
         $sql = "SELECT e.dni_empl, e.nomb_empl, e.apat_empl, c.nomb_carg, g.nomb_grup,
-                       a.fech_ingr, a.fech_sali, a.horas_tard, a.horas_trab
+                       a.fech_ingr, a.fech_sali, a.horas_tard, a.horas_trab, d.nomb_dist as sede_marcacion,
+                       a.id_empleado
                 FROM asistencia a
                 INNER JOIN empleado e ON a.id_empleado = e.pk_id_empleado
                 INNER JOIN cargo c ON e.id_cargo = c.pk_id_cargo
                 INNER JOIN grupo g ON e.id_grupo = g.pk_id_grupo
+                LEFT JOIN distrito d ON a.id_distrito = d.pk_id_distrito
                 $where_sql
                 ORDER BY a.fech_ingr DESC";
     } else {
@@ -67,11 +69,12 @@ try {
         $titulo_principal = $empleado['nomb_empl'] . " " . $empleado['apat_empl'];
         $subtitulo = "Historial individual de marcaciones";
 
-        $sql = "SELECT a.*, e.nomb_empl, e.apat_empl, e.dni_empl, c.nomb_carg, g.nomb_grup 
+        $sql = "SELECT a.*, e.nomb_empl, e.apat_empl, e.dni_empl, c.nomb_carg, g.nomb_grup, d.nomb_dist as sede_marcacion
                 FROM asistencia a 
                 JOIN empleado e ON a.id_empleado = e.pk_id_empleado
                 JOIN cargo c ON e.id_cargo = c.pk_id_cargo
                 JOIN grupo g ON e.id_grupo = g.pk_id_grupo
+                LEFT JOIN distrito d ON a.id_distrito = d.pk_id_distrito
                 $where_sql
                 ORDER BY a.fech_ingr DESC";
     }
@@ -109,6 +112,11 @@ try {
                 </nav>
                 <h1 class="fw-bold mb-1" style="letter-spacing: -1px;"><?= $titulo_principal ?></h1>
                 <p class="text-muted mb-0"><?= $subtitulo ?></p>
+                <?php if (!$es_general): ?>
+                    <a href="hoja_vida.php?id=<?= $id_empleado ?>" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="bi bi-file-earmark-person"></i> Ver Hoja de Vida
+                    </a>
+                <?php endif; ?>
             </div>
             <div class="d-flex gap-2">
                 <div class="dropdown">
@@ -164,6 +172,7 @@ try {
                     <thead class="bg-light">
                         <tr>
                             <th>Colaborador</th>
+                            <th>Sede del Día</th>
                             <th>Entrada</th>
                             <th>Salida</th>
                             <th>Estado / Tardanza</th>
@@ -174,8 +183,16 @@ try {
                         <?php foreach ($asistencias as $asist): ?>
                             <tr>
                                 <td>
-                                    <div class="fw-bold text-dark"><?= htmlspecialchars($asist['nomb_empl'] . " " . $asist['apat_empl']) ?></div>
-                                    <div class="text-muted small">DNI: <?= $asist['dni_empl'] ?></div>
+                                    <a href="?id=<?= $asist['id_empleado'] ?>" class="text-decoration-none">
+                                        <div class="fw-bold text-dark"><?= htmlspecialchars(($asist['nomb_empl'] ?? '') . " " . ($asist['apat_empl'] ?? '')) ?></div>
+                                        <div class="text-muted small">DNI: <?= htmlspecialchars($asist['dni_empl'] ?? '---') ?></div>
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                        <?= htmlspecialchars($asist['sede_marcacion'] ?? 'No especificada') ?>
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="text-primary fw-semibold">

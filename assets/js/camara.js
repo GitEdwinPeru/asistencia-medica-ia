@@ -3,6 +3,8 @@ const status = document.getElementById('status');
 const btnMarcar = document.getElementById('btn-marcar-asistencia');
 const btnSalida = document.getElementById('btn-marcar-salida'); // Nuevo botón de salida
 const canvas = document.getElementById('overlay'); 
+const selectSede = document.getElementById('sede-asistencia');
+const sedeWarning = document.getElementById('sede-warning');
 
 const MODEL_URL = '../assets/models/';
 let faceMatcher = null;
@@ -10,9 +12,31 @@ let idEmpleadoDetectado = null;
 
 const obtenerRutaModel = (archivo) => `../models/${archivo}`;
 
+// Función para cargar sedes en el selector
+async function cargarSedes() {
+    try {
+        const res = await fetch(obtenerRutaModel('obtener_sedes.php'));
+        const sedes = await res.json();
+        
+        if (Array.isArray(sedes)) {
+            sedes.forEach(sede => {
+                const option = document.createElement('option');
+                option.value = sede.id;
+                option.textContent = sede.nombre;
+                selectSede.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error("Error al cargar sedes:", error);
+    }
+}
+
 async function iniciarSistema() {
     try {
         status.innerHTML = "<span class='badge bg-info p-2 animate-pulse'>Cargando Modelos locales...</span>";
+
+        // Cargar sedes primero
+        await cargarSedes();
 
         // 1. Cargar redes neuronales incluyendo expresiones para el efecto visual
         await Promise.all([
@@ -69,6 +93,25 @@ async function iniciarCamara() {
     }
 }
 
+function actualizarEstadoBotones(identificado) {
+    const sedeSeleccionada = selectSede.value !== "";
+    
+    if (identificado && sedeSeleccionada) {
+        btnMarcar.disabled = false;
+        btnSalida.disabled = false;
+        sedeWarning.classList.add('d-none');
+    } else {
+        btnMarcar.disabled = true;
+        btnSalida.disabled = true;
+        
+        if (identificado && !sedeSeleccionada) {
+            sedeWarning.classList.remove('d-none');
+        } else {
+            sedeWarning.classList.add('d-none');
+        }
+    }
+}
+
 function reconocimientoContinuo() {
     const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
     faceapi.matchDimensions(canvas, displaySize);
@@ -111,31 +154,32 @@ function reconocimientoContinuo() {
                     
                     if (isLive) {
                         status.innerHTML = `<span class='badge bg-success p-2 shadow-sm pulse-green'><i class='bi bi-patch-check-fill'></i> Humano Detectado - ID: ${idEmpleadoDetectado}</span>`;
-                        btnMarcar.disabled = false;
-                        btnSalida.disabled = false;
+                        actualizarEstadoBotones(true);
                     } else {
                         status.innerHTML = `<span class='badge bg-danger p-2'><i class='bi bi-exclamation-triangle'></i> Posible Foto Detectada</span>`;
-                        btnMarcar.disabled = true;
-                        btnSalida.disabled = true;
+                        actualizarEstadoBotones(false);
                     }
                 } else {
                     idEmpleadoDetectado = null;
                     status.innerHTML = "<span class='badge bg-secondary p-2'>Rostro no reconocido</span>";
-                    btnMarcar.disabled = true;
-                    btnSalida.disabled = true;
+                    actualizarEstadoBotones(false);
                 }
             }
         } else {
             status.innerHTML = "<span class='badge bg-warning text-dark p-2'>Buscando rostro...</span>";
-            btnMarcar.disabled = true;
-            btnSalida.disabled = true;
+            actualizarEstadoBotones(false);
         }
     }, 500);
 }
 
+// Evento al cambiar la sede
+selectSede.addEventListener('change', () => {
+    actualizarEstadoBotones(idEmpleadoDetectado !== null);
+});
+
 // Función para procesar el registro (Entrada o Salida)
 async function procesarAsistencia(tipo) {
-    if (!idEmpleadoDetectado) return;
+    if (!idEmpleadoDetectado || selectSede.value === "") return;
     
     const btnActual = (tipo === 'entrada') ? btnMarcar : btnSalida;
     btnActual.disabled = true;
@@ -143,6 +187,7 @@ async function procesarAsistencia(tipo) {
     const formData = new FormData();
     formData.append('id_empleado', idEmpleadoDetectado);
     formData.append('tipo_registro', tipo); // Envía el tipo de acción
+    formData.append('id_distrito', selectSede.value); // Envía la sede seleccionada
 
     try {
         const response = await fetch(obtenerRutaModel('registrar_asistencia.php'), {

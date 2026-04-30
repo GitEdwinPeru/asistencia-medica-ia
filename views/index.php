@@ -42,6 +42,14 @@
                         <span class="spinner-border spinner-border-sm"></span> Inicializando IA...
                     </div>
 
+                    <div class="mb-4 text-start">
+                        <label class="form-label small fw-bold text-dark"><i class="bi bi-geo-alt-fill text-danger"></i> Seleccionar Sede de Trabajo <span class="text-danger">*</span></label>
+                        <select id="sede-asistencia" class="form-select border-primary shadow-sm" required>
+                            <option value="">-- Elija la sede para hoy --</option>
+                        </select>
+                        <div id="sede-warning" class="text-danger small mt-1 d-none">Debe seleccionar una sede antes de marcar.</div>
+                    </div>
+
                     <div class="d-flex gap-2 mb-2">
                         <button id="btn-marcar-asistencia" class="btn btn-success btn-lg w-100 shadow-sm fw-bold" disabled>
                             <i class="bi bi-check2-circle me-2"></i>Entrada

@@ -38,10 +38,12 @@ if ($fecha_fin) {
 }
 $where_sql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
 
-$sql = "SELECT e.nomb_empl, e.apat_empl, e.dni_empl, c.nomb_carg, a.fech_ingr, a.fech_sali, a.horas_tard, a.horas_trab
+$sql = "SELECT e.nomb_empl, e.apat_empl, e.dni_empl, c.nomb_carg, 
+               a.fech_ingr, a.fech_sali, a.horas_tard, a.horas_trab, d.nomb_dist as sede_marcacion
         FROM asistencia a
         INNER JOIN empleado e ON a.id_empleado = e.pk_id_empleado
         INNER JOIN cargo c ON e.id_cargo = c.pk_id_cargo
+        LEFT JOIN distrito d ON a.id_distrito = d.pk_id_distrito
         $where_sql
         ORDER BY a.fech_ingr DESC";
 
@@ -68,7 +70,7 @@ $html = '
         <tr>
             <th>DNI</th>
             <th>Empleado</th>
-            <th>Cargo</th>
+            <th>Sede del Día</th>
             <th>Entrada</th>
             <th>Salida</th>
             <th>Tardanza</th>
@@ -81,7 +83,7 @@ foreach ($asistencias as $as) {
     $html .= '<tr>
         <td>' . $as['dni_empl'] . '</td>
         <td>' . htmlspecialchars($as['nomb_empl'] . " " . $as['apat_empl']) . '</td>
-        <td>' . htmlspecialchars($as['nomb_carg']) . '</td>
+        <td>' . htmlspecialchars($as['sede_marcacion'] ?? 'S/D') . '</td>
         <td>' . date('d/m/Y H:i', strtotime($as['fech_ingr'])) . '</td>
         <td>' . ($as['fech_sali'] ? date('d/m/Y H:i', strtotime($as['fech_sali'])) : '---') . '</td>
         <td style="color: ' . ($as['horas_tard'] != '00:00:00' ? 'red' : 'black') . '">' . $as['horas_tard'] . '</td>

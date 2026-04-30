@@ -37,13 +37,14 @@ if ($fecha_fin) {
 $where_sql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
 
 $sql = "SELECT e.nomb_empl, e.apat_empl, e.dni_empl, 
-               c.nomb_carg, g.nomb_grup, d.nomb_dist,
+               c.nomb_carg, g.nomb_grup, d_emp.nomb_dist as distrito_base, d_asist.nomb_dist as sede_marcacion,
                a.fech_ingr, a.fech_sali, a.horas_tard, a.horas_trab
         FROM asistencia a
         INNER JOIN empleado e ON a.id_empleado = e.pk_id_empleado
         INNER JOIN cargo c ON e.id_cargo = c.pk_id_cargo
         INNER JOIN grupo g ON e.id_grupo = g.pk_id_grupo
-        INNER JOIN distrito d ON e.id_distrito = d.pk_id_distrito
+        INNER JOIN distrito d_emp ON e.id_distrito = d_emp.pk_id_distrito
+        LEFT JOIN distrito d_asist ON a.id_distrito = d_asist.pk_id_distrito
         $where_sql
         ORDER BY a.fech_ingr DESC";
 
@@ -73,7 +74,7 @@ header("Expires: 0");
             <th>APELLIDOS</th>
             <th>CARGO / PROFESIÓN</th>
             <th>GRUPO TÉCNICO</th>
-            <th>SEDE / DISTRITO</th>
+            <th>SEDE DE MARCACIÓN</th>
             <th>ENTRADA</th>
             <th>SALIDA</th>
             <th>TARDANZA</th>
@@ -88,7 +89,7 @@ header("Expires: 0");
                 <td><?php echo htmlspecialchars($asist['apat_empl']); ?></td>
                 <td><?php echo htmlspecialchars($asist['nomb_carg']); ?></td>
                 <td><?php echo htmlspecialchars($asist['nomb_grup']); ?></td>
-                <td><?php echo htmlspecialchars($asist['nomb_dist']); ?></td>
+                <td><?php echo htmlspecialchars($asist['sede_marcacion'] ?? 'No especificada'); ?></td>
                 <td><?php echo $asist['fech_ingr']; ?></td>
                 <td><?php echo $asist['fech_sali'] ? $asist['fech_sali'] : 'Sin salida'; ?></td>
                 <td style="<?php echo ($asist['horas_tard'] != '00:00:00') ? 'color: red;' : ''; ?>">
