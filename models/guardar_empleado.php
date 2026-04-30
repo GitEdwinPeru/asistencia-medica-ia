@@ -5,6 +5,12 @@ restringirSoloAdmin();
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Validar Token CSRF
+    if (!isset($_POST['csrf_token']) || !validarTokenCSRF($_POST['csrf_token'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Error de seguridad: Token CSRF inválido.']);
+        exit;
+    }
+
     // 1. Recoger datos del formulario
     $nombre      = trim($_POST['nombre'] ?? '');
     $apat        = trim($_POST['apellido_pat'] ?? '');

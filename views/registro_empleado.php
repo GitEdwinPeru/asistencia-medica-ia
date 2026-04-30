@@ -31,6 +31,7 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
             
             <div class="card-body p-4">
                 <form id="formRegistroEmpleado" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <div class="row">
                         <div class="col-lg-4 text-center border-end pe-lg-4">
                             <h6 class="section-title">Validación Biométrica</h6>
@@ -113,7 +114,11 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const MODEL_URL = '../assets/models/';
+    </script>
     <script src="../assets/js/lib/face-api.js"></script>
     <script src="../assets/js/registro_logica.js"></script>
 </body>

@@ -11,6 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
+// Validar Token CSRF
+if (!isset($_POST['csrf_token']) || !validarTokenCSRF($_POST['csrf_token'])) {
+    echo json_encode(['status' => 'error', 'message' => 'Error de seguridad: Token CSRF inválido.']);
+    exit;
+}
+
 $id_empleado = intval($_POST['id_empleado'] ?? 0);
 
 if ($id_empleado === 0) {

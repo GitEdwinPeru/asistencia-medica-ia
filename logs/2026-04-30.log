@@ -25,3 +25,14 @@
 [2026-04-30 02:58:54] [INFO]: Usuario 'admin' inició sesión exitosamente.
 [2026-04-30 03:00:14] [INFO]: Usuario 'admin' inició sesión exitosamente.
 [2026-04-30 03:00:51] [INFO]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 03:07:39] [INFO]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 03:08:02] [INFO]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 15:06:47] [INFO] [IP: ::1] [AdminID: 2]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 08:09:27] [AUDIT] [IP: ::1] [AdminID: GUEST]: Asistencia registrada: Empleado Edwin Brayan Benavides (ID 2) en Sede ID 1 - Tipo: Entrada
+[2026-04-30 15:09:36] [INFO] [IP: ::1] [AdminID: 2]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 15:10:33] [INFO] [IP: ::1] [AdminID: 2]: Nuevo usuario administrativo creado: 'EDWIN_01' por 2
+[2026-04-30 15:10:52] [INFO] [IP: ::1] [AdminID: 3]: Usuario 'EDWIN_01' inició sesión exitosamente.
+[2026-04-30 15:11:31] [INFO] [IP: ::1] [AdminID: 2]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 15:25:59] [INFO] [IP: ::1] [AdminID: 2]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 15:27:43] [INFO] [IP: ::1] [AdminID: 3]: Usuario 'EDWIN_01' inició sesión exitosamente.
+[2026-04-30 15:28:20] [INFO] [IP: ::1] [AdminID: 2]: Usuario 'admin' inició sesión exitosamente.

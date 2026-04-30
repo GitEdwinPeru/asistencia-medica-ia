@@ -4,22 +4,49 @@ const statusIA = document.getElementById('status-ia');
 const btnGuardar = document.getElementById('btn-guardar');
 const descriptorInput = document.getElementById('descriptor_input');
 
-const MODEL_URL = '../assets/models/';
+const finalModelUrl = (typeof MODEL_URL !== 'undefined') ? MODEL_URL : '../assets/models/';
 
 async function cargarModelosYCamara() {
-    try {
-        statusIA.innerHTML = "<span class='text-primary'>Cargando motor de IA...</span>";
-        
-        // Carga de modelos incluyendo FaceExpressionNet para las emociones
-        await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-            faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
-        ]);
+    console.log("--- INICIANDO REGISTRO DE PERSONAL ---");
 
+    // Iniciar cámara de inmediato
+    try {
+        console.log("Solicitando acceso a cámara...");
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         video.srcObject = stream;
+        video.play();
+        console.log("Cámara iniciada.");
+    } catch (err) {
+        console.error("Error cámara:", err);
+        statusIA.innerHTML = "<span class='text-danger'>Cámara no disponible</span>";
+    }
+
+    try {
+        if (!statusIA) throw new Error("Elemento status-ia no encontrado.");
+
+        statusIA.innerHTML = "<span class='text-primary animate-pulse'>Cargando motor de IA...</span>";
+        
+        if (typeof faceapi === 'undefined') {
+            throw new Error("Librería face-api.js no cargada.");
+        }
+
+        console.log("Cargando modelos desde:", finalModelUrl);
+
+        // Carga paralela para máxima velocidad
+        const resultados = await Promise.allSettled([
+            faceapi.nets.tinyFaceDetector.loadFromUri(finalModelUrl),
+            faceapi.nets.faceLandmark68Net.loadFromUri(finalModelUrl),
+            faceapi.nets.faceRecognitionNet.loadFromUri(finalModelUrl),
+            faceapi.nets.faceExpressionNet.loadFromUri(finalModelUrl)
+        ]);
+
+        const fallos = resultados.filter(r => r.status === 'rejected');
+        if (fallos.length > 0) {
+            console.error("Fallos en carga de modelos:", fallos);
+            throw new Error("No se pudieron cargar los modelos de IA.");
+        }
+
+        console.log("Todos los modelos listos para el registro.");
 
         video.onplay = () => {
             statusIA.innerHTML = "<span class='text-success'>IA Lista</span>";

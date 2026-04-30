@@ -1,3 +1,6 @@
+<?php
+require_once '../config/auth.php';
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -65,6 +68,7 @@
                 <div class="tab-pane fade" id="admin">
                     <h3 class="fw-bold mb-4 text-dark">ACCESO AL SISTEMA</h3>
                     <form action="../models/login_process.php" method="POST">
+                        <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                         <div class="mb-3 text-start">
                             <label class="form-label small fw-bold">Usuario</label>
                             <div class="input-group">
@@ -94,6 +98,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Definir rutas globales para los scripts JS
+        const MODEL_URL = '../assets/models/';
+    </script>
     <script src="../assets/js/lib/face-api.js"></script>
     <script src="../assets/js/camara.js"></script>
 </body>

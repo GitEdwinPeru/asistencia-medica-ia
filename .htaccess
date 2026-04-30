@@ -1,0 +1,7 @@
+# Configuración de Errores Personalizados
+ErrorDocument 404 /asistencia_facial/views/404.php
+ErrorDocument 403 /asistencia_facial/views/403.php
+
+# Seguridad básica
+Options -Indexes
+DirectoryIndex views/index.php

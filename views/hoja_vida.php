@@ -145,6 +145,7 @@ $todos_empleados = $stmt_all->fetchAll();
 
         <form id="cvForm">
             <input type="hidden" name="id_empleado" value="<?= $id_empleado ?>">
+            <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
 
             <!-- Ficha Datos Personales -->
             <div class="cv-section">

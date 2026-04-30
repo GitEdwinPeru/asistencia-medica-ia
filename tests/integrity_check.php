@@ -9,13 +9,16 @@ echo "=== TEST DE INTEGRIDAD DEL SISTEMA ===\n\n";
 
 $base_url = "http://localhost/asistencia_facial/"; // Ajustar según entorno
 
-function test_endpoint($url) {
+function test_endpoint(string $url): bool {
     echo "Probando: $url ... ";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    $response = curl_exec($ch);
+    curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
+    // curl_close() es opcional en PHP 8.0+ para objetos CurlHandle, 
+    // pero lo mantenemos si queremos compatibilidad o limpieza explícita.
     curl_close($ch);
 
     if ($http_code === 200) {
