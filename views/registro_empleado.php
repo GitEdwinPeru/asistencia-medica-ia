@@ -117,7 +117,7 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const MODEL_URL = '../assets/models/';
+        const MODEL_URL = '/asistencia_facial/assets/models/';
     </script>
     <script src="../assets/js/lib/face-api.js"></script>
     <script src="../assets/js/registro_logica.js"></script>

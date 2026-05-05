@@ -100,7 +100,7 @@ require_once '../config/auth.php';
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Definir rutas globales para los scripts JS
-        const MODEL_URL = '../assets/models/';
+        const MODEL_URL = '/asistencia_facial/assets/models/';
     </script>
     <script src="../assets/js/lib/face-api.js"></script>
     <script src="../assets/js/camara.js"></script>
