@@ -15,7 +15,7 @@ let idEmpleadoDetectado = null;
 let recognitionIntervalId = null;
 let reconocimientoActivo = false;
 
-const obtenerRutaModel = (archivo) => `../models/${archivo}`;
+const obtenerRutaModel = (archivo) => `/asistencia_facial/models/${archivo}`;
 
 function normalizarError(error, fallback = 'Ocurrio un error inesperado') {
     if (error instanceof Error) return error;

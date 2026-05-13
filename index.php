@@ -1,5 +1,5 @@
 <?php
-require_once '../config/auth.php';
+require_once 'config/auth.php';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -10,7 +10,7 @@ require_once '../config/auth.php';
     <title>Asistencia Facial - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../assets/css/index_estilos.css">
+    <link rel="stylesheet" href="assets/css/index_estilos.css">
 </head>
 <body>
     <div class="container p-3">
@@ -67,7 +67,7 @@ require_once '../config/auth.php';
 
                 <div class="tab-pane fade" id="admin">
                     <h3 class="fw-bold mb-4 text-dark">ACCESO AL SISTEMA</h3>
-                    <form action="../models/login_process.php" method="POST">
+                    <form action="models/login_process.php" method="POST">
                         <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                         <div class="mb-3 text-start">
                             <label class="form-label small fw-bold">Usuario</label>
@@ -100,9 +100,9 @@ require_once '../config/auth.php';
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Definir rutas globales para los scripts JS
-        const MODEL_URL = '../assets/models/';
+        const MODEL_URL = '/asistencia_facial/assets/models/';
     </script>
-    <script src="../assets/js/lib/face-api.js"></script>
-    <script src="../assets/js/camara.js"></script>
+    <script src="assets/js/lib/face-api.js"></script>
+    <script src="assets/js/camara.js"></script>
 </body>
 </html>

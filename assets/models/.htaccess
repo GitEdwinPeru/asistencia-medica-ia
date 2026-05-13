@@ -1,0 +1,8 @@
+# Configuración para servir modelos de face-api.js correctamente
+<FilesMatch ".*-shard[0-9]+$">
+    ForceType application/octet-stream
+</FilesMatch>
+
+<FilesMatch "\.json$">
+    ForceType application/json
+</FilesMatch>

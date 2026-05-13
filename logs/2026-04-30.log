@@ -36,3 +36,4 @@
 [2026-04-30 15:25:59] [INFO] [IP: ::1] [AdminID: 2]: Usuario 'admin' inició sesión exitosamente.
 [2026-04-30 15:27:43] [INFO] [IP: ::1] [AdminID: 3]: Usuario 'EDWIN_01' inició sesión exitosamente.
 [2026-04-30 15:28:20] [INFO] [IP: ::1] [AdminID: 2]: Usuario 'admin' inició sesión exitosamente.
+[2026-04-30 17:47:06] [AUDIT] [IP: ::1] [AdminID: GUEST]: Asistencia registrada: Empleado Edwin Brayan Benavides (ID 2) en Sede ID 1 - Tipo: Salida

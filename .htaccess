@@ -4,4 +4,4 @@ ErrorDocument 403 /asistencia_facial/views/403.php
 
 # Seguridad básica
 Options -Indexes
-DirectoryIndex views/index.php
+DirectoryIndex index.php

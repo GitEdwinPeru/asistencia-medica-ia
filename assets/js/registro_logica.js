@@ -48,39 +48,59 @@ async function cargarModelosYCamara() {
 
         console.log("Todos los modelos listos para el registro.");
 
-        video.onplay = () => {
+        const iniciarDeteccion = () => {
             statusIA.innerHTML = "<span class='text-success'>IA Lista</span>";
             const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
             setInterval(async () => {
-                // Detección extendida con landmarks y expresiones
-                const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                    .withFaceLandmarks()
-                    .withFaceDescriptor()
-                    .withFaceExpressions();
+                if (video.paused || video.ended) return;
 
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                try {
+                    // Verificación de salud de modelos antes de detectar
+                    if (!faceapi.nets.tinyFaceDetector.params) {
+                        console.warn("Re-cargando pesos del detector...");
+                        await faceapi.nets.tinyFaceDetector.loadFromUri(finalModelUrl);
+                    }
 
-                if (detection) {
-                    const resizedDetections = faceapi.resizeResults(detection, displaySize);
-                    
-                    // Dibujo de los elementos visuales solicitados
-                    faceapi.draw.drawDetections(canvas, resizedDetections);
-                    faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-                    faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
+                    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceDescriptor()
+                        .withFaceExpressions();
 
-                    // Preparación de datos para el envío
-                    descriptorInput.value = JSON.stringify(Array.from(detection.descriptor));
-                    statusIA.innerHTML = "<span class='text-success fw-bold'>Rostro Detectado ✓</span>";
-                    btnGuardar.disabled = false;
-                } else {
-                    statusIA.innerHTML = "<span class='text-danger'>Encuadre su rostro</span>";
-                    btnGuardar.disabled = true;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    if (detection) {
+                        const resizedDetections = faceapi.resizeResults(detection, displaySize);
+                        
+                        faceapi.draw.drawDetections(canvas, resizedDetections);
+                        faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+                        faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
+
+                        descriptorInput.value = JSON.stringify(Array.from(detection.descriptor));
+                        statusIA.innerHTML = "<span class='text-success fw-bold'>Rostro Detectado ✓</span>";
+                        btnGuardar.disabled = false;
+                    } else {
+                        statusIA.innerHTML = "<span class='text-danger'>Encuadre su rostro</span>";
+                        btnGuardar.disabled = true;
+                    }
+                } catch (e) {
+                    console.error("Error en detección facial:", e);
+                    // Si el error es persistente, informar al usuario
+                    if (e.message.includes('weights')) {
+                        statusIA.innerHTML = "<span class='text-danger'>Error: Modelos corruptos o no cargados</span>";
+                    }
                 }
             }, 500);
         };
+
+        // Si el video ya está reproduciéndose, iniciar de inmediato
+        if (!video.paused) {
+            iniciarDeteccion();
+        } else {
+            video.onplay = iniciarDeteccion;
+        }
 
     } catch (error) {
         statusIA.innerHTML = "<span class='text-danger'>Error: Verifique assets/models/</span>";
