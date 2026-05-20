@@ -3,36 +3,60 @@ const canvas = document.getElementById('overlay');
 const statusIA = document.getElementById('status-ia');
 const btnGuardar = document.getElementById('btn-guardar');
 const descriptorInput = document.getElementById('descriptor_input');
+const telefonoInput = document.querySelector('input[name="telefono"]');
 
 const finalModelUrl = (typeof MODEL_URL !== 'undefined') ? MODEL_URL : '../assets/models/';
 
-async function cargarModelosYCamara() {
-    console.log("--- INICIANDO REGISTRO DE PERSONAL ---");
+if (telefonoInput) {
+    telefonoInput.inputMode = 'numeric';
+    telefonoInput.maxLength = 9;
+    telefonoInput.minLength = 9;
+    telefonoInput.pattern = '[0-9]{9}';
+    telefonoInput.title = 'Ingrese exactamente 9 dígitos numéricos';
 
-    // Iniciar cámara de inmediato
+    telefonoInput.addEventListener('input', () => {
+        telefonoInput.value = telefonoInput.value.replace(/\D/g, '').slice(0, 9);
+    });
+}
+
+function mostrarEstadoCamaraRegistro(tipo, titulo, detalle = '') {
+    const clase = tipo === 'danger' ? 'alert-danger' : tipo === 'success' ? 'alert-success' : 'alert-info';
+    statusIA.innerHTML = `<div class="alert ${clase} text-start small py-2 mb-0">
+        <strong>${titulo}</strong>
+        ${detalle ? `<div class="mt-1">${detalle}</div>` : ''}
+        ${tipo === 'danger' ? '<button type="button" class="btn btn-sm btn-outline-danger mt-2" onclick="location.reload()">Reintentar</button>' : ''}
+    </div>`;
+}
+
+async function cargarModelosYCamara() {
+    console.log('--- INICIANDO REGISTRO DE PERSONAL ---');
+
     try {
-        console.log("Solicitando acceso a cámara...");
+        console.log('Solicitando acceso a cámara...');
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         video.srcObject = stream;
-        video.play();
-        console.log("Cámara iniciada.");
+        await video.play();
+        console.log('Cámara iniciada.');
     } catch (err) {
-        console.error("Error cámara:", err);
-        statusIA.innerHTML = "<span class='text-danger'>Cámara no disponible</span>";
+        console.error('Error de cámara:', err);
+        mostrarEstadoCamaraRegistro(
+            'danger',
+            'No se pudo usar la cámara.',
+            'Active el permiso de cámara del navegador, conecte una cámara disponible y vuelva a intentar.'
+        );
     }
 
     try {
-        if (!statusIA) throw new Error("Elemento status-ia no encontrado.");
+        if (!statusIA) throw new Error('Elemento status-ia no encontrado.');
 
-        statusIA.innerHTML = "<span class='text-primary animate-pulse'>Cargando motor de IA...</span>";
-        
+        mostrarEstadoCamaraRegistro('info', 'Cargando motor de IA...', 'Espere mientras se preparan los modelos faciales.');
+
         if (typeof faceapi === 'undefined') {
-            throw new Error("Librería face-api.js no cargada.");
+            throw new Error('Librería face-api.js no cargada.');
         }
 
-        console.log("Cargando modelos desde:", finalModelUrl);
+        console.log('Cargando modelos desde:', finalModelUrl);
 
-        // Carga paralela para máxima velocidad
         const resultados = await Promise.allSettled([
             faceapi.nets.tinyFaceDetector.loadFromUri(finalModelUrl),
             faceapi.nets.faceLandmark68Net.loadFromUri(finalModelUrl),
@@ -40,16 +64,16 @@ async function cargarModelosYCamara() {
             faceapi.nets.faceExpressionNet.loadFromUri(finalModelUrl)
         ]);
 
-        const fallos = resultados.filter(r => r.status === 'rejected');
+        const fallos = resultados.filter((resultado) => resultado.status === 'rejected');
         if (fallos.length > 0) {
-            console.error("Fallos en carga de modelos:", fallos);
-            throw new Error("No se pudieron cargar los modelos de IA.");
+            console.error('Fallos en carga de modelos:', fallos);
+            throw new Error('No se pudieron cargar los modelos de IA.');
         }
 
-        console.log("Todos los modelos listos para el registro.");
+        console.log('Todos los modelos listos para el registro.');
 
         const iniciarDeteccion = () => {
-            statusIA.innerHTML = "<span class='text-success'>IA Lista</span>";
+            mostrarEstadoCamaraRegistro('success', 'IA lista', 'Coloque el rostro frente a la cámara.');
             const displaySize = { width: video.offsetWidth, height: video.offsetHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
@@ -57,9 +81,8 @@ async function cargarModelosYCamara() {
                 if (video.paused || video.ended) return;
 
                 try {
-                    // Verificación de salud de modelos antes de detectar
                     if (!faceapi.nets.tinyFaceDetector.params) {
-                        console.warn("Re-cargando pesos del detector...");
+                        console.warn('Recargando pesos del detector...');
                         await faceapi.nets.tinyFaceDetector.loadFromUri(finalModelUrl);
                     }
 
@@ -73,57 +96,73 @@ async function cargarModelosYCamara() {
 
                     if (detection) {
                         const resizedDetections = faceapi.resizeResults(detection, displaySize);
-                        
+
                         faceapi.draw.drawDetections(canvas, resizedDetections);
                         faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
                         faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
 
                         descriptorInput.value = JSON.stringify(Array.from(detection.descriptor));
-                        statusIA.innerHTML = "<span class='text-success fw-bold'>Rostro Detectado ✓</span>";
+                        statusIA.innerHTML = "<span class='text-success fw-bold'>Rostro detectado ✓</span>";
                         btnGuardar.disabled = false;
                     } else {
                         statusIA.innerHTML = "<span class='text-danger'>Encuadre su rostro</span>";
                         btnGuardar.disabled = true;
                     }
-                } catch (e) {
-                    console.error("Error en detección facial:", e);
-                    // Si el error es persistente, informar al usuario
-                    if (e.message.includes('weights')) {
-                        statusIA.innerHTML = "<span class='text-danger'>Error: Modelos corruptos o no cargados</span>";
+                } catch (error) {
+                    console.error('Error en detección facial:', error);
+                    if (error.message && error.message.includes('weights')) {
+                        mostrarEstadoCamaraRegistro('danger', 'Modelos no disponibles', 'Revise la carpeta assets/models.');
                     }
                 }
             }, 500);
         };
 
-        // Si el video ya está reproduciéndose, iniciar de inmediato
         if (!video.paused) {
             iniciarDeteccion();
         } else {
             video.onplay = iniciarDeteccion;
         }
-
     } catch (error) {
-        statusIA.innerHTML = "<span class='text-danger'>Error: Verifique assets/models/</span>";
+        mostrarEstadoCamaraRegistro('danger', 'No se pudo iniciar la IA facial', 'Verifique que los modelos existan en assets/models.');
         console.error(error);
     }
 }
 
-// Lógica de envío del formulario
-document.getElementById('formRegistroEmpleado').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
+document.getElementById('formRegistroEmpleado').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const dniInput = event.target.querySelector('input[name="dni"]');
+    if (dniInput && !/^\d{8}$/.test(dniInput.value)) {
+        UIFeedback.warning('DNI inválido', 'El DNI debe tener exactamente 8 dígitos numéricos.');
+        dniInput.focus();
+        return;
+    }
+
+    if (dniInput && dniInput.classList.contains('is-invalid')) {
+        UIFeedback.warning('DNI duplicado', 'Revise el DNI antes de guardar el registro.');
+        dniInput.focus();
+        return;
+    }
+
+    if (telefonoInput && telefonoInput.value !== '' && !/^\d{9}$/.test(telefonoInput.value)) {
+        UIFeedback.warning('Teléfono inválido', 'El teléfono debe tener exactamente 9 dígitos numéricos.');
+        telefonoInput.focus();
+        return;
+    }
+
+    const formData = new FormData(event.target);
     try {
         const response = await fetch('../models/guardar_empleado.php', { method: 'POST', body: formData });
         const result = await response.json();
         if (result.status === 'success') {
-            Swal.fire('¡Éxito!', 'Empleado registrado correctamente', 'success').then(() => {
+            UIFeedback.success('Empleado registrado correctamente').then(() => {
                 window.location.reload();
             });
         } else {
-            Swal.fire('Error', result.message, 'error');
+            UIFeedback.error('Error', result.message);
         }
     } catch {
-        Swal.fire('Error', 'Fallo de servidor', 'error');
+        UIFeedback.error('Error', 'Fallo de servidor');
     }
 });
 

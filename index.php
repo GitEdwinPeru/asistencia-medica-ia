@@ -44,6 +44,16 @@ require_once 'config/auth.php';
                     <div id="status" class="alert alert-info py-2 small my-3">
                         <span class="spinner-border spinner-border-sm"></span> Inicializando IA...
                     </div>
+                    <div class="d-flex justify-content-center gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.refrescarBaseFacial?.()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar rostros
+                        </button>
+                        <?php if (isset($_SESSION['admin_id']) && tienePermiso('empleados')): ?>
+                            <a href="views/empleados_sin_rostro.php" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-person-x me-1"></i> Sin rostro
+                            </a>
+                        <?php endif; ?>
+                    </div>
 
                     <div class="mb-4 text-start">
                         <label class="form-label small fw-bold text-dark"><i class="bi bi-geo-alt-fill text-danger"></i> Seleccionar Sede de Trabajo <span class="text-danger">*</span></label>
@@ -98,9 +108,25 @@ require_once 'config/auth.php';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/js/ui_feedback.js"></script>
     <script>
         // Definir rutas globales para los scripts JS
         const MODEL_URL = '/asistencia_facial/assets/models/';
+        const ATTENDANCE_TOKEN = '<?= obtenerTokenAsistencia() ?>';
+        const params = new URLSearchParams(window.location.search);
+        if (window.location.hash === '#admin' || params.has('login')) {
+            const tab = document.getElementById('admin-tab');
+            if (tab) bootstrap.Tab.getOrCreateInstance(tab).show();
+        }
+        if (params.get('login') === 'invalid') {
+            UIFeedback.error('Acceso denegado', 'Usuario o clave incorrectos.');
+        } else if (params.get('login') === 'locked') {
+            UIFeedback.warning('Acceso bloqueado temporalmente', `Demasiados intentos fallidos. Intente nuevamente en ${params.get('remaining') || '15'} minutos.`);
+        } else if (params.get('login') === 'system') {
+            UIFeedback.error('Error de sistema', 'No se pudo procesar el inicio de sesion.');
+        } else if (params.get('password') === 'changed') {
+            UIFeedback.success('Contrasena actualizada');
+        }
     </script>
     <script src="assets/js/lib/face-api.js"></script>
     <script src="assets/js/camara.js"></script>
