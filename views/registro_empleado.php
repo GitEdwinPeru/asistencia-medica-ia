@@ -1,11 +1,11 @@
 <?php
 require_once '../config/auth.php';
-restringirSoloAdmin();
+requerirPermiso('empleados');
 require_once '../config/db.php';
 
-$cargos = $pdo->query("SELECT * FROM cargo ORDER BY nomb_carg ASC")->fetchAll();
-$grupos = $pdo->query("SELECT * FROM grupo ORDER BY nomb_grup ASC")->fetchAll();
-$distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetchAll();
+$cargos = $pdo->query("SELECT * FROM cargo WHERE esta_carg = 1 ORDER BY nomb_carg ASC")->fetchAll();
+$grupos = $pdo->query("SELECT * FROM grupo WHERE esta_grup = 1 ORDER BY nomb_grup ASC")->fetchAll();
+$distritos = $pdo->query("SELECT * FROM distrito WHERE esta_dist = 1 ORDER BY nomb_dist ASC")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -14,6 +14,7 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
     <title>Registro de Personal - AMFURI PERU S.A.C.</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../assets/css/ui_common.css">
     <link rel="stylesheet" href="../assets/css/registro_empleado.css">
 </head>
 <body>
@@ -30,7 +31,7 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
             </div>
             
             <div class="card-body p-4">
-                <form id="formRegistroEmpleado" enctype="multipart/form-data">
+                <form id="formRegistroEmpleado" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <div class="row">
                         <div class="col-lg-4 text-center border-end pe-lg-4">
@@ -45,7 +46,8 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
                             
                             <div class="mt-3 text-start">
                                 <label class="form-label fw-bold small">Foto para Fotocheck</label>
-                                <input type="file" name="foto_perfil" class="form-control form-control-sm" accept="image/*">
+                                <input type="file" name="foto_perfil" class="form-control form-control-sm" accept="image/jpeg,image/png,image/webp" aria-describedby="fotoHelp">
+                                <div id="fotoHelp" class="form-text">JPG, PNG o WEBP. Maximo 2 MB.</div>
                             </div>
                         </div>
 
@@ -55,7 +57,11 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
                                 <div class="col-md-4"><label class="form-label">Nombres</label><input type="text" name="nombre" class="form-control" required></div>
                                 <div class="col-md-4"><label class="form-label">Ap. Paterno</label><input type="text" name="apellido_pat" class="form-control" required></div>
                                 <div class="col-md-4"><label class="form-label">Ap. Materno</label><input type="text" name="apellido_mat" class="form-control" required></div>
-                                <div class="col-md-4"><label class="form-label">DNI</label><input type="text" name="dni" class="form-control" maxlength="8" required></div>
+                                <div class="col-md-4">
+                                    <label class="form-label">DNI</label>
+                                    <input type="text" name="dni" id="dni_registro" class="form-control only-digits" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" required>
+                                    <div id="dni-feedback" class="form-text"></div>
+                                </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Fecha de Nacimiento</label>
                                     <input type="date" name="fecha_nac" class="form-control" required>
@@ -81,19 +87,19 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
                                 <div class="col-md-4">
                                     <label class="form-label">Cargo</label>
                                     <select name="id_cargo" class="form-select">
-                                        <?php foreach ($cargos as $c): ?><option value="<?= $c['pk_id_cargo'] ?>"><?= $c['nomb_carg'] ?></option><?php endforeach; ?>
+                                        <?php foreach ($cargos as $c): ?><option value="<?= (int) $c['pk_id_cargo'] ?>"><?= htmlspecialchars($c['nomb_carg']) ?></option><?php endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Grupo</label>
                                     <select name="id_grupo" class="form-select">
-                                        <?php foreach ($grupos as $g): ?><option value="<?= $g['pk_id_grupo'] ?>"><?= $g['nomb_grup'] ?></option><?php endforeach; ?>
+                                        <?php foreach ($grupos as $g): ?><option value="<?= (int) $g['pk_id_grupo'] ?>"><?= htmlspecialchars($g['nomb_grup']) ?></option><?php endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Distrito</label>
                                     <select name="id_distrito" class="form-select">
-                                        <?php foreach ($distritos as $d): ?><option value="<?= $d['pk_id_distrito'] ?>"><?= $d['nomb_dist'] ?></option><?php endforeach; ?>
+                                        <?php foreach ($distritos as $d): ?><option value="<?= (int) $d['pk_id_distrito'] ?>"><?= htmlspecialchars($d['nomb_dist']) ?></option><?php endforeach; ?>
                                     </select>
                                 </div>
                             </div>
@@ -116,8 +122,56 @@ $distritos = $pdo->query("SELECT * FROM distrito ORDER BY nomb_dist ASC")->fetch
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/ui_feedback.js"></script>
+    <script src="../assets/js/ui_accessibility.js"></script>
     <script>
         const MODEL_URL = '/asistencia_facial/assets/models/';
+        (() => {
+            const telefonoInputRegistro = document.querySelector('input[name="telefono"]');
+            if (telefonoInputRegistro) {
+                telefonoInputRegistro.classList.add('only-digits');
+                telefonoInputRegistro.setAttribute('inputmode', 'numeric');
+                telefonoInputRegistro.setAttribute('maxlength', '9');
+                telefonoInputRegistro.setAttribute('pattern', '[0-9]{9}');
+                telefonoInputRegistro.setAttribute('placeholder', '9 digitos');
+            }
+            document.querySelectorAll('.only-digits').forEach((input) => {
+                input.addEventListener('input', () => {
+                    input.value = input.value.replace(/\D/g, '').slice(0, Number(input.getAttribute('maxlength')) || 20);
+                });
+            });
+
+            const dniInput = document.getElementById('dni_registro');
+            const dniFeedback = document.getElementById('dni-feedback');
+            let dniTimer = null;
+            if (dniInput && dniFeedback) {
+                dniInput.addEventListener('input', () => {
+                    clearTimeout(dniTimer);
+                    dniInput.classList.remove('is-valid', 'is-invalid');
+                    dniFeedback.textContent = '';
+                    if (dniInput.value.length !== 8) return;
+
+                    dniTimer = setTimeout(async () => {
+                        try {
+                            const response = await fetch(`../models/verificar_dni.php?dni=${encodeURIComponent(dniInput.value)}`);
+                            const data = await response.json();
+                            if (data.exists) {
+                                dniInput.classList.add('is-invalid');
+                                dniFeedback.className = 'invalid-feedback d-block';
+                                dniFeedback.textContent = `DNI ya registrado para ${data.employee?.nombre || 'otro colaborador'}.`;
+                            } else {
+                                dniInput.classList.add('is-valid');
+                                dniFeedback.className = 'valid-feedback d-block';
+                                dniFeedback.textContent = 'DNI disponible.';
+                            }
+                        } catch {
+                            dniFeedback.className = 'form-text text-muted';
+                            dniFeedback.textContent = 'No se pudo verificar el DNI en este momento.';
+                        }
+                    }, 350);
+                });
+            }
+        })();
     </script>
     <script src="../assets/js/lib/face-api.js"></script>
     <script src="../assets/js/registro_logica.js"></script>

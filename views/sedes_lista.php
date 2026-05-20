@@ -1,11 +1,11 @@
 <?php
 require_once '../config/auth.php';
-restringirSoloAdmin();
+requerirPermiso('catalogos');
 require_once '../config/db.php';
 
 // Consulta para Sedes y conteo de personal activo por sede
 $sql = "SELECT d.*, (SELECT COUNT(*) FROM empleado e WHERE e.id_distrito = d.pk_id_distrito AND e.esta_empl = 1) as total 
-        FROM distrito d ORDER BY nomb_dist ASC";
+        FROM distrito d WHERE d.esta_dist = 1 ORDER BY nomb_dist ASC";
 $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -16,6 +16,7 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/ui_common.css">
     <link rel="stylesheet" href="../assets/css/grupos_lista.css">
 </head>
 <body class="bg-light">
@@ -51,6 +52,17 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                         </tr>
                     </thead>
                     <tbody>
+                        <?php if (empty($sedes)): ?>
+                        <tr>
+                            <td colspan="3" class="text-center py-5">
+                                <div class="mx-auto mb-3 bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                                    <i class="bi bi-geo-alt text-muted fs-4"></i>
+                                </div>
+                                <div class="fw-bold text-dark">No hay sedes registradas</div>
+                                <div class="text-muted small">Crea una sede para asignar personal y filtrar asistencias.</div>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                         <?php foreach($sedes as $s): ?>
                         <tr>
                             <td class="ps-4">
@@ -70,15 +82,17 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 me-1 btn-edit-sede" 
+                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 me-1 btn-edit-sede btn-icon" 
                                         data-id="<?= $s['pk_id_distrito'] ?>" 
                                         data-nombre="<?= htmlspecialchars($s['nomb_dist']) ?>"
                                         data-observacion="<?= htmlspecialchars($s['obsv_dist'] ?? '') ?>"
-                                        data-bs-toggle="modal" data-bs-target="#modalEditarSede">
+                                        data-bs-toggle="modal" data-bs-target="#modalEditarSede"
+                                        title="Editar sede" aria-label="Editar sede">
                                     <i class="bi bi-pencil text-primary"></i>
                                 </button>
                                 
-                                <button class="btn btn-sm btn-white border shadow-sm rounded-3" 
+                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 btn-icon" 
+                                        data-bs-toggle="tooltip" title="Desactivar sede" aria-label="Desactivar sede"
                                         onclick="confirmarEliminarSede(<?= $s['pk_id_distrito'] ?>, '<?= htmlspecialchars($s['nomb_dist']) ?>')">
                                     <i class="bi bi-trash text-danger"></i>
                                 </button>
@@ -101,6 +115,7 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
                 <form action="../models/guardar_sede.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <div class="modal-body p-4">
                         <h5 class="fw-bold mb-4">Registrar Nueva Sede</h5>
                         <div class="mb-3">
@@ -125,6 +140,7 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
                 <form action="../models/editar_sede.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <input type="hidden" name="id_distrito" id="edit_id_distrito">
                     <div class="modal-body p-4">
                         <h5 class="fw-bold mb-4">Modificar Sede</h5>
@@ -148,8 +164,25 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/ui_feedback.js"></script>
+    <script src="../assets/js/ui_accessibility.js"></script>
 
     <script>
+        function postAction(url, fields = {}) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            Object.entries({ csrf_token: '<?= generarTokenCSRF() ?>', ...fields }).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         // Cargar datos en modal editar
         document.querySelectorAll('.btn-edit-sede').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -159,32 +192,27 @@ $sedes = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
             });
         });
 
-        // Alerta de eliminación
         function confirmarEliminarSede(id, nombre) {
-            Swal.fire({
-                title: '¿Eliminar sede?',
-                text: `Se eliminará la sede "${nombre}". Asegúrese de que no tenga personal asignado.`,
+            UIFeedback.confirm(
+                'Eliminar sede',
+                `Se desactivara "${nombre}". Si tiene personal activo, el sistema bloqueara la accion.`,
+                {
                 icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Sí, eliminar sede',
-                cancelButtonText: 'Cancelar',
-                reverseButtons: true,
-                customClass: { popup: 'rounded-4' }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = `../models/eliminar_sede.php?id=${id}`;
+                confirmButtonText: 'Si, desactivar',
+                cancelButtonText: 'Cancelar'
                 }
+            ).then((result) => {
+                if (result.isConfirmed) postAction('../models/eliminar_sede.php', { id });
             });
         }
 
-        // Notificaciones de respuesta
-        const urlParams = new URLSearchParams(window.location.search);
-        const msj = urlParams.get('msj');
-        if (msj === 'registrado') Swal.fire({ icon: 'success', title: '¡Sede Creada!', timer: 2000, showConfirmButton: false });
-        if (msj === 'editado') Swal.fire({ icon: 'success', title: '¡Sede Actualizada!', timer: 2000, showConfirmButton: false });
-        if (msj === 'eliminado') Swal.fire({ icon: 'success', title: '¡Sede Eliminada!', timer: 2000, showConfirmButton: false });
+        UIFeedback.fromQuery({
+            registrado: { icon: 'success', title: 'Sede registrada' },
+            editado: { icon: 'success', title: 'Sede actualizada' },
+            eliminado: { icon: 'success', title: 'Sede desactivada' },
+            error_integridad: { icon: 'error', title: 'Sede en uso', text: 'Reasigna o desactiva primero al personal vinculado.' },
+            error: { icon: 'error', title: 'No se pudo procesar la solicitud' }
+        });
     </script>
 </body>
 </html>

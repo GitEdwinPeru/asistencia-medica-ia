@@ -4,6 +4,7 @@ restringirSoloAdmin();
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requerirCSRF($_POST['csrf_token'] ?? '');
     $id = intval($_POST['id_distrito']);
     $nombre = trim($_POST['nomb_dist']);
     $obsv = trim($_POST['obsv_dist'] ?? '');

@@ -4,6 +4,7 @@ restringirSoloAdmin();
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requerirCSRF($_POST['csrf_token'] ?? '');
     $nomb_grup = trim($_POST['nomb_grup']);
 
     if (!empty($nomb_grup)) {

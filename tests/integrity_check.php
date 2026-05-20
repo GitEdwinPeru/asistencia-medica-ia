@@ -1,51 +1,54 @@
 <?php
-/**
- * Test de Integridad del Sistema de Asistencia Facial
- * Este script verifica que los módulos críticos estén operativos.
- */
-
 header('Content-Type: text/plain; charset=utf-8');
+
 echo "=== TEST DE INTEGRIDAD DEL SISTEMA ===\n\n";
 
-$base_url = "http://localhost/asistencia_facial/"; // Ajustar según entorno
+$root = dirname(__DIR__);
+$ok = true;
 
-function test_endpoint(string $url): bool {
-    echo "Probando: $url ... ";
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
-    // curl_close() es opcional en PHP 8.0+ para objetos CurlHandle, 
-    // pero lo mantenemos si queremos compatibilidad o limpieza explícita.
-    curl_close($ch);
-
-    if ($http_code === 200) {
-        echo "OK (200)\n";
-        return true;
-    } else {
-        echo "FALLO (Código: $http_code)\n";
-        return false;
-    }
+function assert_check(bool $condition, string $message): void {
+    global $ok;
+    echo ($condition ? "[OK] " : "[FALLO] ") . $message . "\n";
+    if (!$condition) $ok = false;
 }
 
-// 1. Verificación de archivos base
 $files = [
-    '../config/db.php',
-    '../config/auth.php',
-    '../views/index.php',
-    '../views/asistencia_detalle.php'
+    'index.php',
+    'config/db.php',
+    'config/auth.php',
+    'config/response.php',
+    'config/upload.php',
+    'models/registrar_asistencia.php',
+    'models/obtener_empleados_fotos.php',
+    'views/asistencia_detalle.php',
+    'assets/js/camara.js',
+    'assets/models/tiny_face_detector_model-weights_manifest.json',
 ];
 
 foreach ($files as $file) {
-    echo "Verificando archivo físico: $file ... ";
-    if (file_exists(__DIR__ . '/' . $file)) {
-        echo "EXISTE\n";
-    } else {
-        echo "NO EXISTE\n";
-    }
+    assert_check(file_exists($root . '/' . $file), "Archivo requerido: $file");
 }
 
-echo "\n--- Fin del Test ---\n";
+require_once $root . '/config/db.php';
+
+$requiredTables = [
+    'empleado',
+    'asistencia',
+    'login',
+    'login_attempts',
+    'asistencia_config',
+    'auditoria_eventos',
+];
+
+foreach ($requiredTables as $table) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+    $stmt->execute([$table]);
+    assert_check((bool) $stmt->fetchColumn(), "Tabla requerida: $table");
+}
+
+$empleadosConRostro = (int) $pdo->query("SELECT COUNT(*) FROM empleado WHERE esta_empl = 1 AND rostro_embedding IS NOT NULL")->fetchColumn();
+assert_check($empleadosConRostro > 0, "Existe al menos un empleado activo con descriptor facial");
+
+echo "\nResultado: " . ($ok ? "SISTEMA BASE OK" : "REVISAR FALLOS") . "\n";
+exit($ok ? 0 : 1);
 ?>

@@ -2,6 +2,10 @@
 /node_modules
 /vendor
 .DS_Store
+logs/*.log
+uploads/fotos/*
+!uploads/fotos/.htaccess
+.env
 
 # Ignorar configuraciones de bases de datos con contraseñas reales
 # (Es mejor subir un config-sample.php)

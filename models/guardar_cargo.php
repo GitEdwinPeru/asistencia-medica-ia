@@ -4,6 +4,7 @@ restringirSoloAdmin();
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requerirCSRF($_POST['csrf_token'] ?? '');
     $nombre = trim($_POST['nomb_carg'] ?? '');
 
     if (!empty($nombre)) {

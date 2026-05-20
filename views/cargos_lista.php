@@ -1,11 +1,11 @@
 <?php
 require_once '../config/auth.php';
-restringirSoloAdmin();
+requerirPermiso('catalogos');
 require_once '../config/db.php';
 
 // Consulta para obtener cargos y contar cuántos empleados tienen asignado cada cargo
 $sql = "SELECT c.*, (SELECT COUNT(*) FROM empleado e WHERE e.id_cargo = c.pk_id_cargo AND e.esta_empl = 1) as total 
-        FROM cargo c ORDER BY nomb_carg ASC";
+        FROM cargo c WHERE c.esta_carg = 1 ORDER BY nomb_carg ASC";
 $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -16,6 +16,7 @@ $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/ui_common.css">
     <style>
         body { background-color: #f8f9fa; font-family: 'Inter', sans-serif; }
         .nav-pill-custom { background: white; border: 1px solid #dee2e6; border-radius: 50px; padding: 5px; }
@@ -66,6 +67,17 @@ $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                         </tr>
                     </thead>
                     <tbody>
+                        <?php if (empty($cargos)): ?>
+                        <tr>
+                            <td colspan="3" class="text-center py-5">
+                                <div class="mx-auto mb-3 bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                                    <i class="bi bi-briefcase text-muted fs-4"></i>
+                                </div>
+                                <div class="fw-bold text-dark">No hay cargos registrados</div>
+                                <div class="text-muted small">Crea el primer cargo para clasificar al personal.</div>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                         <?php foreach($cargos as $c): ?>
                         <tr>
                             <td class="ps-4">
@@ -85,13 +97,15 @@ $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 me-1 btn-edit" 
+                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 me-1 btn-edit btn-icon" 
                                         data-id="<?= $c['pk_id_cargo'] ?>" 
                                         data-nombre="<?= htmlspecialchars($c['nomb_carg']) ?>"
-                                        data-bs-toggle="modal" data-bs-target="#modalEditarCargo">
+                                        data-bs-toggle="modal" data-bs-target="#modalEditarCargo"
+                                        title="Editar cargo" aria-label="Editar cargo">
                                     <i class="bi bi-pencil text-primary"></i>
                                 </button>
-                                <button class="btn btn-sm btn-white border shadow-sm rounded-3" 
+                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 btn-icon" 
+                                        data-bs-toggle="tooltip" title="Desactivar cargo" aria-label="Desactivar cargo"
                                         onclick="confirmarEliminarCargo(<?= $c['pk_id_cargo'] ?>, '<?= htmlspecialchars($c['nomb_carg']) ?>')">
                                     <i class="bi bi-trash text-danger"></i>
                                 </button>
@@ -118,6 +132,7 @@ $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="../models/guardar_cargo.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Nombre del Cargo / Especialidad</label>
@@ -141,6 +156,7 @@ $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="../models/editar_cargo.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <div class="modal-body">
                         <input type="hidden" name="id_cargo" id="edit_id_cargo">
                         <div class="mb-3">
@@ -159,7 +175,24 @@ $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/ui_feedback.js"></script>
+    <script src="../assets/js/ui_accessibility.js"></script>
     <script>
+        function postAction(url, fields = {}) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            Object.entries({ csrf_token: '<?= generarTokenCSRF() ?>', ...fields }).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         // Lógica para cargar datos en el modal de edición de Cargo
         const modalEditarCargo = document.getElementById('modalEditarCargo');
         if (modalEditarCargo) {
@@ -174,25 +207,26 @@ $cargos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         }
 
         function confirmarEliminarCargo(id, nombre) {
-            Swal.fire({
-                title: '¿Eliminar Cargo?',
-                text: `Se eliminará el cargo "${nombre}". Esta acción no se puede deshacer si hay personal vinculado.`,
+            UIFeedback.confirm(
+                'Eliminar cargo',
+                `Se desactivara "${nombre}". Si tiene personal activo, el sistema bloqueara la accion para proteger la informacion.`,
+                {
                 icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                confirmButtonText: 'Sí, eliminar cargo'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = `../models/eliminar_cargo.php?id=${id}`;
+                confirmButtonText: 'Si, desactivar',
+                cancelButtonText: 'Cancelar'
                 }
+            ).then((result) => {
+                if (result.isConfirmed) postAction('../models/eliminar_cargo.php', { id });
             });
         }
 
-        // Manejo de respuestas URL
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('msj') === 'editado') Swal.fire('Éxito', 'Cargo actualizado.', 'success');
-        if (params.get('msj') === 'guardado') Swal.fire('Éxito', 'Nuevo cargo registrado.', 'success');
-        if (params.get('msj') === 'error_integridad') Swal.fire('Error', 'No se puede eliminar un cargo en uso.', 'error');
+        UIFeedback.fromQuery({
+            editado: { icon: 'success', title: 'Cargo actualizado' },
+            guardado: { icon: 'success', title: 'Cargo registrado' },
+            eliminado: { icon: 'success', title: 'Cargo desactivado' },
+            error_integridad: { icon: 'error', title: 'Cargo en uso', text: 'Reasigna o desactiva primero al personal vinculado.' },
+            error: { icon: 'error', title: 'No se pudo procesar la solicitud' }
+        });
     </script>
 </body>
 </html>

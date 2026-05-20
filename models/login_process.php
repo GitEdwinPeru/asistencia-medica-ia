@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../config/auth.php';
 require_once '../config/db.php';
 require_once '../config/logger.php';
@@ -25,7 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($attempt_data['attempts'] >= $max_attempts && (time() - $last_time) < $lockout_time) {
             $remaining = ceil(($lockout_time - (time() - $last_time)) / 60);
             Logger::security("Bloqueo de IP $ip_address por exceso de intentos.");
-            die("Demasiados intentos fallidos. Su IP ha sido bloqueada temporalmente. Intente de nuevo en $remaining minutos.");
+            header("Location: ../index.php?login=locked&remaining=$remaining#admin");
+            exit;
         }
     }
 
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     try {
         // Buscamos en la tabla 'login' según tu diagrama
-        $stmt = $pdo->prepare("SELECT * FROM login WHERE usuario = :user LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM login WHERE usuario = :user AND esta_login = 1 LIMIT 1");
         $stmt->execute([':user' => $usuario]);
         $user = $stmt->fetch();
 
@@ -80,10 +80,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 exit;
             }
             Logger::security("Intento de login fallido para usuario: '$usuario'");
-            echo "<script>alert('Usuario o clave incorrectos'); window.history.back();</script>";
+            header("Location: ../index.php?login=invalid#admin");
+            exit;
         }
     } catch (PDOException $e) {
         Logger::error("Fallo en login: " . $e->getMessage());
-        die("Error de sistema.");
+        header("Location: ../index.php?login=system#admin");
+        exit;
     }
 }

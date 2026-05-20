@@ -1,61 +1,16 @@
-<?php
+﻿<?php
 require_once '../config/auth.php';
-verificarSesion();
+requerirPermiso('hoja_vida');
 require_once '../config/db.php';
 require_once '../config/security.php';
+require_once '../config/hoja_vida_data.php';
 
-$id_empleado = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-// Si no hay ID, buscar el primer empleado activo para mostrar algo por defecto o redirigir
-if ($id_empleado === 0) {
-    $stmt_default = $pdo->query("SELECT pk_id_empleado FROM empleado WHERE esta_empl = 1 LIMIT 1");
-    $id_empleado = $stmt_default->fetchColumn();
-    
-    if (!$id_empleado) {
-        header("Location: dashboard.php");
-        exit();
-    }
-}
-
-// Obtener datos básicos
-$stmt = $pdo->prepare("SELECT e.*, c.nomb_carg, g.nomb_grup, d.nomb_dist 
-                       FROM empleado e 
-                       LEFT JOIN cargo c ON e.id_cargo = c.pk_id_cargo 
-                       LEFT JOIN grupo g ON e.id_grupo = g.pk_id_grupo 
-                       LEFT JOIN distrito d ON e.id_distrito = d.pk_id_distrito 
-                       WHERE e.pk_id_empleado = ?");
-$stmt->execute([$id_empleado]);
-$empleado = $stmt->fetch();
-
-if (!$empleado) {
-    header("Location: empleados_lista.php");
+$data = cargarHojaVidaData($pdo, $_GET);
+if (!empty($data['redirect'])) {
+    header("Location: {$data['redirect']}");
     exit();
 }
-
-// Obtener otros datos
-$estudios = $pdo->prepare("SELECT * FROM empleado_estudios WHERE id_empleado = ?");
-$estudios->execute([$id_empleado]);
-$estudios = $estudios->fetchAll();
-
-$bancos = $pdo->prepare("SELECT * FROM empleado_bancos WHERE id_empleado = ?");
-$bancos->execute([$id_empleado]);
-$bancos = $bancos->fetchAll();
-
-$familia = $pdo->prepare("SELECT * FROM empleado_familia WHERE id_empleado = ?");
-$familia->execute([$id_empleado]);
-$familia = $familia->fetchAll();
-
-$emergencia = $pdo->prepare("SELECT * FROM empleado_emergencia WHERE id_empleado = ?");
-$emergencia->execute([$id_empleado]);
-$emergencia = $emergencia->fetchAll();
-
-$experiencia = $pdo->prepare("SELECT * FROM empleado_experiencia WHERE id_empleado = ?");
-$experiencia->execute([$id_empleado]);
-$experiencia = $experiencia->fetchAll();
-
-// Obtener todos los empleados activos para el selector
-$stmt_all = $pdo->query("SELECT pk_id_empleado, nomb_empl, apat_empl, dni_empl FROM empleado WHERE esta_empl = 1 ORDER BY apat_empl ASC");
-$todos_empleados = $stmt_all->fetchAll();
+extract($data);
 
 ?>
 <!DOCTYPE html>
@@ -67,6 +22,7 @@ $todos_empleados = $stmt_all->fetchAll();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../assets/css/ui_common.css">
     <style>
         :root { 
             --medical-primary: #007bff; 
@@ -204,13 +160,20 @@ $todos_empleados = $stmt_all->fetchAll();
         <div class="selector-card no-print">
             <div class="row align-items-center">
                 <div class="col-md-4">
-                    <h6 class="mb-0 fw-bold"><i class="bi bi-search me-2 text-teal"></i> GESTIÓN DE COLABORADOR</h6>
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-search me-2 text-teal"></i> GESTIÃ“N DE COLABORADOR</h6>
                 </div>
                 <div class="col-md-8">
                     <div class="input-group">
+                        <select id="estadoDocSelector" class="form-select" onchange="cambiarFiltroDocumental(this.value)" aria-label="Filtrar estado documental">
+                            <option value="">Todos</option>
+                            <option value="completo" <?= $estado_doc === 'completo' ? 'selected' : '' ?>>Completo</option>
+                            <option value="sin_foto" <?= $estado_doc === 'sin_foto' ? 'selected' : '' ?>>Sin foto</option>
+                            <option value="sin_descriptor" <?= $estado_doc === 'sin_descriptor' ? 'selected' : '' ?>>Sin rostro</option>
+                            <option value="sin_sede" <?= $estado_doc === 'sin_sede' ? 'selected' : '' ?>>Sin sede</option>
+                        </select>
                         <select id="userSelector" class="form-select" onchange="cambiarUsuario(this.value)" aria-label="Seleccionar empleado">
                             <?php foreach ($todos_empleados as $emp): ?>
-                                <option value="<?= $emp['pk_id_empleado'] ?>" <?= $id_empleado == $emp['pk_id_empleado'] ? 'selected' : '' ?>>
+                                <option value="<?= (int) $emp['pk_id_empleado'] ?>" <?= $id_empleado == $emp['pk_id_empleado'] ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($emp['apat_empl'] . ' ' . $emp['nomb_empl'] . ' (DNI: ' . $emp['dni_empl'] . ')') ?>
                                 </option>
                             <?php endforeach; ?>
@@ -228,7 +191,7 @@ $todos_empleados = $stmt_all->fetchAll();
             <div class="d-flex align-items-center gap-4">
                 <div class="position-relative">
                     <?php if ($empleado['foto_empl']): ?>
-                        <img src="../uploads/fotos/<?= $empleado['foto_empl'] ?>" class="rounded-circle shadow-lg border border-4 border-white" style="width: 120px; height: 120px; object-fit: cover;" alt="Foto de <?= htmlspecialchars($empleado['nomb_empl']) ?>">
+                        <img src="../uploads/fotos/<?= htmlspecialchars($empleado['foto_empl']) ?>" class="rounded-circle shadow-lg border border-4 border-white" style="width: 120px; height: 120px; object-fit: cover;" alt="Foto de <?= htmlspecialchars($empleado['nomb_empl']) ?>">
                     <?php else: ?>
                         <div class="rounded-circle bg-light d-flex align-items-center justify-content-center border border-4 border-white" style="width: 120px; height: 120px;" role="img" aria-label="Sin foto de perfil">
                             <i class="bi bi-person text-muted fs-1"></i>
@@ -239,15 +202,15 @@ $todos_empleados = $stmt_all->fetchAll();
                     <h1 class="fw-bold mb-1 h3 text-dark"><?= htmlspecialchars($empleado['apat_empl'] . ', ' . $empleado['nomb_empl']) ?></h1>
                     <div class="d-flex gap-3 align-items-center">
                         <span class="badge bg-primary px-3 rounded-pill py-2"><?= htmlspecialchars($empleado['nomb_carg']) ?></span>
-                        <span class="text-secondary small fw-bold">ID: <?= $empleado['dni_empl'] ?></span>
+                        <span class="text-secondary small fw-bold">ID: <?= htmlspecialchars($empleado['dni_empl']) ?></span>
                     </div>
                 </div>
             </div>
             <div class="d-flex gap-3">
-                <button onclick="generarPDF()" class="btn btn-medical btn-outline-danger" title="Exportar a PDF">
+                <button onclick="generarPDF()" class="btn btn-medical btn-outline-danger" title="Exportar a PDF" data-bs-toggle="tooltip" aria-label="Exportar hoja de vida a PDF">
                     <i class="bi bi-file-earmark-pdf-fill"></i> PDF
                 </button>
-                <button id="btnGuardarMaestro" onclick="guardarTodo()" class="btn btn-medical btn-teal shadow-sm">
+                <button id="btnGuardarMaestro" onclick="guardarTodo()" class="btn btn-medical btn-teal shadow-sm" data-bs-toggle="tooltip" title="Guardar toda la hoja de vida" aria-label="Guardar toda la hoja de vida">
                     <i class="bi bi-cloud-upload-fill"></i> 
                     <span>Guardar Todo</span>
                     <span class="spinner-border spinner-border-sm spinner-container" role="status"></span>
@@ -255,22 +218,22 @@ $todos_empleados = $stmt_all->fetchAll();
             </div>
         </div>
 
-        <form id="cvForm" novalidate>
-            <input type="hidden" name="id_empleado" value="<?= $id_empleado ?>">
+        <form id="cvForm" method="POST" novalidate>
+            <input type="hidden" name="id_empleado" value="<?= (int) $id_empleado ?>">
             <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
 
             <!-- Ficha Datos Personales -->
             <div class="cv-section">
-                <h5 class="section-title"><i class="bi bi-person-circle"></i> Información Personal</h5>
+                <h5 class="section-title"><i class="bi bi-person-circle"></i> InformaciÃ³n Personal</h5>
                 <div class="row g-4">
                     <div class="col-md-4">
                         <label class="form-label" for="dni_readonly">Documento Identidad (DNI)</label>
-                        <input type="text" id="dni_readonly" class="form-control bg-light" value="<?= $empleado['dni_empl'] ?>" readonly>
+                        <input type="text" id="dni_readonly" class="form-control bg-light" value="<?= htmlspecialchars($empleado['dni_empl']) ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="fnac_empl">Fecha de Nacimiento</label>
                         <input type="date" name="fnac_empl" id="fnac_empl" class="form-control auto-save" 
-                               value="<?= $empleado['fnac_empl'] ?>">
+                               value="<?= htmlspecialchars($empleado['fnac_empl'] ?? '') ?>">
                         <div class="invalid-feedback">Debe ser mayor de edad (18+).</div>
                     </div>
                     <div class="col-md-4">
@@ -289,10 +252,10 @@ $todos_empleados = $stmt_all->fetchAll();
                                placeholder="Ej: Peruana" value="<?= htmlspecialchars($empleado['nacionalidad'] ?? '') ?>">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="celu_empl">Número Celular</label>
+                        <label class="form-label" for="celu_empl">NÃºmero Celular</label>
                         <input type="tel" name="celu_empl" id="celu_empl" class="form-control auto-save only-numbers" 
                                maxlength="9" placeholder="999888777" value="<?= htmlspecialchars($empleado['celu_empl'] ?? '') ?>">
-                        <div class="invalid-feedback">Ingrese 9 dígitos numéricos.</div>
+                        <div class="invalid-feedback">Ingrese 9 dÃ­gitos numÃ©ricos.</div>
                     </div>
                     <div class="col-md-8">
                         <label class="form-label" for="emai_empl">Email Corporativo/Personal</label>
@@ -302,35 +265,35 @@ $todos_empleados = $stmt_all->fetchAll();
                     <div class="col-12">
                         <label class="form-label" for="dire_empl">Domicilio Actual</label>
                         <input type="text" name="dire_empl" id="dire_empl" class="form-control auto-save" 
-                               placeholder="Dirección completa" value="<?= htmlspecialchars($empleado['dire_empl'] ?? '') ?>">
+                               placeholder="DirecciÃ³n completa" value="<?= htmlspecialchars($empleado['dire_empl'] ?? '') ?>">
                     </div>
                 </div>
             </div>
 
-            <!-- Estudios y Formación -->
+            <!-- Estudios y FormaciÃ³n -->
             <div class="cv-section" id="section-estudios">
                 <div class="d-flex justify-content-between align-items-center section-title">
-                    <h5 class="m-0"><i class="bi bi-mortarboard"></i> Formación Académica</h5>
+                    <h5 class="m-0"><i class="bi bi-mortarboard"></i> FormaciÃ³n AcadÃ©mica</h5>
                     <button type="button" class="btn btn-sm btn-teal rounded-pill" onclick="agregarFila('estudios')" aria-label="Agregar estudio">
                         <i class="bi bi-plus-lg"></i> Agregar
                     </button>
                 </div>
                 <div class="container-dinamico">
                     <?php foreach ($estudios as $est): ?>
-                        <div class="dynamic-row" data-id="<?= $est['id'] ?>">
+                        <div class="dynamic-row" data-id="<?= (int) $est['id'] ?>">
                             <button type="button" class="btn-remove" onclick="eliminarFila(this, 'estudios')" aria-label="Eliminar fila">&times;</button>
                             <div class="row g-3">
                                 <div class="col-md-5">
-                                    <label class="form-label">Título / Certificación</label>
+                                    <label class="form-label">TÃ­tulo / CertificaciÃ³n</label>
                                     <input type="text" name="estudio_titulo[]" class="form-control" value="<?= htmlspecialchars($est['titulo']) ?>">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">Institución</label>
+                                    <label class="form-label">InstituciÃ³n</label>
                                     <input type="text" name="estudio_inst[]" class="form-control" value="<?= htmlspecialchars($est['institucion']) ?>">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Fecha</label>
-                                    <input type="date" name="estudio_fecha[]" class="form-control" value="<?= $est['fecha_graduacion'] ?>">
+                                    <input type="date" name="estudio_fecha[]" class="form-control" value="<?= htmlspecialchars($est['fecha_graduacion'] ?? '') ?>">
                                 </div>
                             </div>
                         </div>
@@ -338,7 +301,7 @@ $todos_empleados = $stmt_all->fetchAll();
                 </div>
             </div>
 
-            <!-- Información Bancaria -->
+            <!-- InformaciÃ³n Bancaria -->
             <div class="cv-section">
                 <div class="d-flex justify-content-between align-items-center section-title">
                     <h5 class="m-0"><i class="bi bi-bank"></i> Cuentas Bancarias</h5>
@@ -348,7 +311,7 @@ $todos_empleados = $stmt_all->fetchAll();
                 </div>
                 <div class="container-dinamico">
                     <?php foreach ($bancos as $bnc): ?>
-                        <div class="dynamic-row" data-id="<?= $bnc['id'] ?>">
+                        <div class="dynamic-row" data-id="<?= (int) $bnc['id'] ?>">
                             <button type="button" class="btn-remove" onclick="eliminarFila(this, 'bancos')" aria-label="Eliminar fila">&times;</button>
                             <div class="row g-3">
                                 <div class="col-md-4">
@@ -363,8 +326,8 @@ $todos_empleados = $stmt_all->fetchAll();
                                     </select>
                                 </div>
                                 <div class="col-md-5">
-                                    <label class="form-label">Número de Cuenta / CCI</label>
-                                    <input type="text" name="banco_numero[]" class="form-control account-highlight only-numbers" value="<?= desencriptarDato($bnc['numero_cuenta']) ?>">
+                                    <label class="form-label">NÃºmero de Cuenta / CCI</label>
+                                    <input type="text" name="banco_numero[]" class="form-control account-highlight only-numbers" value="<?= htmlspecialchars(desencriptarDato($bnc['numero_cuenta'])) ?>">
                                 </div>
                             </div>
                         </div>
@@ -382,7 +345,7 @@ $todos_empleados = $stmt_all->fetchAll();
                 </div>
                 <div class="container-dinamico">
                     <?php foreach ($familia as $fam): ?>
-                        <div class="dynamic-row" data-id="<?= $fam['id'] ?>">
+                        <div class="dynamic-row" data-id="<?= (int) $fam['id'] ?>">
                             <button type="button" class="btn-remove" onclick="eliminarFila(this, 'familia')" aria-label="Eliminar fila">&times;</button>
                             <div class="row g-3">
                                 <div class="col-md-4">
@@ -395,10 +358,10 @@ $todos_empleados = $stmt_all->fetchAll();
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Nacimiento</label>
-                                    <input type="date" name="fam_fecha[]" class="form-control" value="<?= $fam['fecha_nacimiento'] ?>">
+                                    <input type="date" name="fam_fecha[]" class="form-control" value="<?= htmlspecialchars($fam['fecha_nacimiento'] ?? '') ?>">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Ocupación</label>
+                                    <label class="form-label">OcupaciÃ³n</label>
                                     <input type="text" name="fam_ocup[]" class="form-control" value="<?= htmlspecialchars($fam['ocupacion']) ?>">
                                 </div>
                             </div>
@@ -417,7 +380,7 @@ $todos_empleados = $stmt_all->fetchAll();
                 </div>
                 <div class="container-dinamico">
                     <?php foreach ($emergencia as $eme): ?>
-                        <div class="dynamic-row" data-id="<?= $eme['id'] ?>">
+                        <div class="dynamic-row" data-id="<?= (int) $eme['id'] ?>">
                             <button type="button" class="btn-remove" onclick="eliminarFila(this, 'emergencia')" aria-label="Eliminar fila">&times;</button>
                             <div class="row g-3">
                                 <div class="col-md-4">
@@ -425,15 +388,15 @@ $todos_empleados = $stmt_all->fetchAll();
                                     <input type="text" name="eme_nombre[]" class="form-control" value="<?= htmlspecialchars($eme['nombre']) ?>">
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label">Relación</label>
+                                    <label class="form-label">RelaciÃ³n</label>
                                     <input type="text" name="eme_rel[]" class="form-control" value="<?= htmlspecialchars($eme['relacion']) ?>">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Teléfono</label>
+                                    <label class="form-label">TelÃ©fono</label>
                                     <input type="text" name="eme_tel[]" class="form-control only-numbers" maxlength="9" value="<?= htmlspecialchars($eme['telefono']) ?>">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Dirección</label>
+                                    <label class="form-label">DirecciÃ³n</label>
                                     <input type="text" name="eme_dir[]" class="form-control" value="<?= htmlspecialchars($eme['direccion']) ?>">
                                 </div>
                             </div>
@@ -452,7 +415,7 @@ $todos_empleados = $stmt_all->fetchAll();
                 </div>
                 <div class="container-dinamico">
                     <?php foreach ($experiencia as $exp): ?>
-                        <div class="dynamic-row" data-id="<?= $exp['id'] ?>">
+                        <div class="dynamic-row" data-id="<?= (int) $exp['id'] ?>">
                             <button type="button" class="btn-remove" onclick="eliminarFila(this, 'experiencia')" aria-label="Eliminar fila">&times;</button>
                             <div class="row g-3">
                                 <div class="col-md-4">
@@ -465,11 +428,11 @@ $todos_empleados = $stmt_all->fetchAll();
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Inicio</label>
-                                    <input type="date" name="exp_inicio[]" class="form-control" value="<?= $exp['fecha_inicio'] ?>">
+                                    <input type="date" name="exp_inicio[]" class="form-control" value="<?= htmlspecialchars($exp['fecha_inicio'] ?? '') ?>">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Fin</label>
-                                    <input type="date" name="exp_fin[]" class="form-control" value="<?= $exp['fecha_fin'] ?>">
+                                    <input type="date" name="exp_fin[]" class="form-control" value="<?= htmlspecialchars($exp['fecha_fin'] ?? '') ?>">
                                 </div>
                                 <div class="col-12 mt-2">
                                     <label class="form-label">Funciones</label>
@@ -491,6 +454,8 @@ $todos_empleados = $stmt_all->fetchAll();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/ui_feedback.js"></script>
+    <script src="../assets/js/ui_accessibility.js"></script>
     
     <script>
         const TEMPLATES = {
@@ -499,15 +464,15 @@ $todos_empleados = $stmt_all->fetchAll();
                     <button type="button" class="btn-remove" onclick="eliminarFila(this, 'estudios')" aria-label="Eliminar fila">&times;</button>
                     <div class="row g-3">
                         <div class="col-md-5">
-                            <label class="form-label">Título / Certificación</label>
-                            <input type="text" name="estudio_titulo[]" class="form-control" placeholder="Ej: Lic. en Administración">
+                            <label class="form-label">TÃ­tulo / CertificaciÃ³n</label>
+                            <input type="text" name="estudio_titulo[]" class="form-control" placeholder="Ej: Lic. en AdministraciÃ³n">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Institución</label>
+                            <label class="form-label">InstituciÃ³n</label>
                             <input type="text" name="estudio_inst[]" class="form-control" placeholder="Ej: Universidad Nacional">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Fecha Graduación</label>
+                            <label class="form-label">Fecha GraduaciÃ³n</label>
                             <input type="date" name="estudio_fecha[]" class="form-control">
                         </div>
                     </div>
@@ -528,8 +493,8 @@ $todos_empleados = $stmt_all->fetchAll();
                             </select>
                         </div>
                         <div class="col-md-5">
-                            <label class="form-label">Número de Cuenta / CCI</label>
-                            <input type="text" name="banco_numero[]" class="form-control account-highlight only-numbers" placeholder="Solo números">
+                            <label class="form-label">NÃºmero de Cuenta / CCI</label>
+                            <input type="text" name="banco_numero[]" class="form-control account-highlight only-numbers" placeholder="Solo nÃºmeros">
                         </div>
                     </div>
                 </div>`,
@@ -550,7 +515,7 @@ $todos_empleados = $stmt_all->fetchAll();
                             <input type="date" name="fam_fecha[]" class="form-control">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Ocupación</label>
+                            <label class="form-label">OcupaciÃ³n</label>
                             <input type="text" name="fam_ocup[]" class="form-control" placeholder="Ej: Estudiante">
                         </div>
                     </div>
@@ -564,16 +529,16 @@ $todos_empleados = $stmt_all->fetchAll();
                             <input type="text" name="eme_nombre[]" class="form-control" placeholder="Nombre completo">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Relación</label>
+                            <label class="form-label">RelaciÃ³n</label>
                             <input type="text" name="eme_rel[]" class="form-control" placeholder="Ej: Esposo/a">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Teléfono</label>
-                            <input type="text" name="eme_tel[]" class="form-control only-numbers" maxlength="9" placeholder="Solo números">
+                            <label class="form-label">TelÃ©fono</label>
+                            <input type="text" name="eme_tel[]" class="form-control only-numbers" maxlength="9" placeholder="Solo nÃºmeros">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Ubicación</label>
-                            <input type="text" name="eme_dir[]" class="form-control" placeholder="Distrito/Dirección">
+                            <label class="form-label">UbicaciÃ³n</label>
+                            <input type="text" name="eme_dir[]" class="form-control" placeholder="Distrito/DirecciÃ³n">
                         </div>
                     </div>
                 </div>`,
@@ -586,7 +551,7 @@ $todos_empleados = $stmt_all->fetchAll();
                             <input type="text" name="exp_empresa[]" class="form-control" placeholder="Nombre de la empresa">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Cargo / Función</label>
+                            <label class="form-label">Cargo / FunciÃ³n</label>
                             <input type="text" name="exp_cargo[]" class="form-control" placeholder="Ej: Analista">
                         </div>
                         <div class="col-md-2">
@@ -605,13 +570,13 @@ $todos_empleados = $stmt_all->fetchAll();
                 </div>`
         };
 
-        // Bloquear letras en campos numéricos y números en campos de texto
+        // Bloquear letras en campos numÃ©ricos y nÃºmeros en campos de texto
         document.addEventListener('input', (e) => {
             if (e.target.classList.contains('only-numbers')) {
                 e.target.value = e.target.value.replace(/[^0-9]/g, '');
             }
             if (e.target.classList.contains('only-letters')) {
-                e.target.value = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+                e.target.value = e.target.value.replace(/[^a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃÃ‰ÃÃ“ÃšÃ±Ã‘\s]/g, '');
             }
         });
 
@@ -620,7 +585,7 @@ $todos_empleados = $stmt_all->fetchAll();
             const sections = document.querySelectorAll('.cv-section');
             let targetSection = null;
             
-            // Buscar sección por icono (método más robusto que :has)
+            // Buscar secciÃ³n por icono (mÃ©todo mÃ¡s robusto que :has)
             sections.forEach(s => {
                 const icon = s.querySelector('.section-title i');
                 if (!icon) return;
@@ -644,9 +609,15 @@ $todos_empleados = $stmt_all->fetchAll();
         }
 
         function cambiarUsuario(id) {
-            if (id && id !== "<?= $id_empleado ?>") {
-                window.location.href = `hoja_vida.php?id=${id}`;
+            if (id && id !== "<?= (int) $id_empleado ?>") {
+                const estado = document.getElementById('estadoDocSelector')?.value || '';
+                window.location.href = `hoja_vida.php?id=${id}${estado ? `&estado_doc=${estado}` : ''}`;
             }
+        }
+
+        function cambiarFiltroDocumental(estado) {
+            const id = document.getElementById('userSelector')?.value || <?= (int) $id_empleado ?>;
+            window.location.href = `hoja_vida.php?id=${id}${estado ? `&estado_doc=${estado}` : ''}`;
         }
 
         function validarFormulario() {
@@ -663,14 +634,14 @@ $todos_empleados = $stmt_all->fetchAll();
                 isValid = false;
             }
 
-            // 2. Validar Celular (9 dígitos)
+            // 2. Validar Celular (9 dÃ­gitos)
             const celularInput = form.querySelector('input[name="celu_empl"]');
             if (celularInput.value && !/^\d{9}$/.test(celularInput.value)) {
                 celularInput.classList.add('is-invalid');
                 isValid = false;
             }
 
-            // 3. Validar Mayoría de Edad (18+)
+            // 3. Validar MayorÃ­a de Edad (18+)
             const fnacInput = form.querySelector('input[name="fnac_empl"]');
             if (fnacInput.value) {
                 const birthDate = new Date(fnacInput.value);
@@ -689,7 +660,7 @@ $todos_empleados = $stmt_all->fetchAll();
             if (!isValid) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Validación de Datos',
+                    title: 'ValidaciÃ³n de Datos',
                     text: 'Por favor, corrija los campos resaltados en rojo.',
                     confirmButtonColor: 'var(--medical-primary)'
                 });
@@ -725,7 +696,7 @@ $todos_empleados = $stmt_all->fetchAll();
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error("Error del servidor:", errorText);
-                    throw new Error('Fallo en la conexión con el servidor o error interno.');
+                    throw new Error('Fallo en la conexiÃ³n con el servidor o error interno.');
                 }
                 
                 const result = await response.json();
@@ -733,8 +704,8 @@ $todos_empleados = $stmt_all->fetchAll();
                 if(result.status === 'success') {
                     Swal.fire({
                         icon: 'success',
-                        title: '¡Cambios Guardados!',
-                        text: 'La hoja de vida se ha actualizado con éxito.',
+                        title: 'Â¡Cambios Guardados!',
+                        text: 'La hoja de vida se ha actualizado con Ã©xito.',
                         timer: 2000,
                         showConfirmButton: false,
                         toast: true,
@@ -782,9 +753,10 @@ $todos_empleados = $stmt_all->fetchAll();
         document.getElementById('cvForm').addEventListener('input', autoSave);
 
         function generarPDF() {
-            const id = <?= $id_empleado ?>;
+            const id = <?= (int) $id_empleado ?>;
             window.open(`../models/exportar_hoja_vida_pdf.php?id=${id}`, '_blank');
         }
     </script>
 </body>
 </html>
+

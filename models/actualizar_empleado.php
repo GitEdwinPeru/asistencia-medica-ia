@@ -3,8 +3,14 @@ header('Content-Type: application/json'); // Cambiado a JSON para manejar la res
 require_once '../config/auth.php';
 restringirSoloAdmin();
 require_once '../config/db.php';
+require_once '../config/logger.php';
+require_once '../config/upload.php';
+require_once '../config/validators.php';
+require_once '../config/audit.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    requerirCSRF($_POST['csrf_token'] ?? '', true);
+
     // 1. Captura de datos básicos e IDs
     $id_empleado = isset($_POST['id_empleado']) ? intval($_POST['id_empleado']) : 0;
     $nombre      = trim($_POST['nombre'] ?? '');
@@ -13,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $fnac        = $_POST['fecha_nac'] ?? null;
     $genero      = $_POST['genero'] ?? '';
     $telefono    = trim($_POST['telefono'] ?? '');
-    $email       = trim($_POST['emai_empl'] ?? '');
+    $email       = textoLimpio($_POST['emai_empl'] ?? '', 150);
     $direccion   = trim($_POST['dire_empl'] ?? '');
     $id_cargo    = intval($_POST['id_cargo'] ?? 0);
     $id_grupo    = intval($_POST['id_grupo'] ?? 0);
@@ -21,20 +27,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $observacion = trim($_POST['obsv_empl'] ?? '');
 
     if ($id_empleado > 0 && !empty($nombre)) {
+        if ($telefono !== '' && !soloDigitos($telefono, 9)) {
+            echo json_encode(['status' => 'error', 'message' => 'El telefono debe tener exactamente 9 digitos numericos.']);
+            exit;
+        }
+
+        if (!validarEmailOpcional($email)) {
+            echo json_encode(['status' => 'error', 'message' => 'El correo electronico no es valido.']);
+            exit;
+        }
+
         try {
             // 2. Gestión de la Nueva Foto (Opcional)
             $nombre_foto = null;
             $cambio_foto = false;
 
-            if (isset($_FILES['foto_perfil']) && $_FILES['foto_perfil']['error'] === 0) {
-                $extension = pathinfo($_FILES['foto_perfil']['name'], PATHINFO_EXTENSION);
-                // Usamos el ID para nombrar la foto y evitar duplicados
-                $nombre_foto = "FOTO_UPD_" . $id_empleado . "_" . time() . "." . $extension;
-                $ruta_destino = "../uploads/fotos/" . $nombre_foto;
-                
-                if (move_uploaded_file($_FILES['foto_perfil']['tmp_name'], $ruta_destino)) {
-                    $cambio_foto = true;
-                }
+            if (isset($_FILES['foto_perfil'])) {
+                $nombre_foto = guardarImagenSubida($_FILES['foto_perfil'], "FOTO_UPD_$id_empleado");
+                $cambio_foto = $nombre_foto !== null;
             }
 
             // 3. Construcción dinámica del SQL de actualización
@@ -81,11 +91,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
+            auditEvent($pdo, 'EDITAR', 'empleado', (string) $id_empleado, 'Empleado actualizado');
 
             echo json_encode(['status' => 'success', 'message' => 'Información actualizada correctamente.']);
 
         } catch (PDOException $e) {
-            echo json_encode(['status' => 'error', 'message' => 'Error en base de datos: ' . $e->getMessage()]);
+            Logger::error("Error al actualizar empleado $id_empleado: " . $e->getMessage());
+            echo json_encode(['status' => 'error', 'message' => 'Error en base de datos al actualizar.']);
+        } catch (RuntimeException $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Datos incompletos para actualizar.']);

@@ -14,8 +14,15 @@ let faceMatcher = null;
 let idEmpleadoDetectado = null;
 let recognitionIntervalId = null;
 let reconocimientoActivo = false;
+let sistemaListo = false;
+let descriptorDetectado = null;
+let registroEnProceso = false;
+let ultimoRegistroTs = 0;
 
 const obtenerRutaModel = (archivo) => `/asistencia_facial/models/${archivo}`;
+const attendanceHeaders = () => ({
+    'X-Attendance-Token': (typeof ATTENDANCE_TOKEN !== 'undefined') ? ATTENDANCE_TOKEN : ''
+});
 
 function normalizarError(error, fallback = 'Ocurrio un error inesperado') {
     if (error instanceof Error) return error;
@@ -40,12 +47,76 @@ function normalizarError(error, fallback = 'Ocurrio un error inesperado') {
     return new Error(fallback);
 }
 
+function estadoHtml(tipo, titulo, detalle = '', acciones = '') {
+    const iconos = {
+        info: 'bi-info-circle-fill',
+        danger: 'bi-camera-video-off-fill',
+        warning: 'bi-exclamation-triangle-fill',
+        success: 'bi-patch-check-fill'
+    };
+    const clase = tipo === 'danger' ? 'alert-danger' : tipo === 'warning' ? 'alert-warning' : tipo === 'success' ? 'alert-success' : 'alert-info';
+    return `<div class='alert ${clase} py-2 small text-start mb-0'>
+        <div class='fw-bold'><i class='bi ${iconos[tipo] || iconos.info} me-1'></i>${titulo}</div>
+        ${detalle ? `<div class='mt-1'>${detalle}</div>` : ''}
+        ${acciones ? `<div class='mt-2 d-flex flex-wrap gap-2'>${acciones}</div>` : ''}
+    </div>`;
+}
+
+function mostrarErrorCamara(errorNormalizado) {
+    let titulo = 'No se pudo iniciar la cámara';
+    let detalle = 'Verifique que el equipo tenga cámara conectada y que ningún otro programa la esté usando.';
+
+    if (errorNormalizado.name === 'NotAllowedError') {
+        titulo = 'Permiso de cámara denegado';
+        detalle = 'Active el permiso de cámara del navegador y vuelva a intentar. En Chrome puede hacerlo desde el icono de candado junto a la dirección.';
+    } else if (errorNormalizado.name === 'NotFoundError') {
+        titulo = 'No se encontró una cámara';
+        detalle = 'Conecte una cámara o revise que Windows la reconozca antes de marcar asistencia.';
+    } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        titulo = 'La cámara requiere conexión segura';
+        detalle = 'Abra el sistema en localhost o configure HTTPS para permitir el acceso a cámara.';
+    } else if (errorNormalizado.message) {
+        detalle = errorNormalizado.message;
+    }
+
+    if (statusDiv) {
+        statusDiv.innerHTML = estadoHtml('danger', titulo, detalle, "<button class='btn btn-sm btn-outline-danger' onclick='location.reload()'>Reintentar</button>");
+    }
+}
+
+async function leerJsonSeguro(response, contexto = 'respuesta del servidor') {
+    const texto = await response.text();
+
+    if (!response.ok) {
+        let mensaje = `Error HTTP ${response.status} en ${contexto}`;
+
+        try {
+            const errorJson = JSON.parse(texto);
+            mensaje = errorJson.message || errorJson.error || mensaje;
+        } catch {
+            if (texto.trim() !== '') mensaje = texto.trim();
+        }
+
+        throw new Error(mensaje);
+    }
+
+    try {
+        return JSON.parse(texto);
+    } catch {
+        const muestra = texto.trim().slice(0, 120) || 'respuesta vacia';
+        throw new Error(`El servidor no devolvio JSON valido en ${contexto}: ${muestra}`);
+    }
+}
+
 async function cargarSedes() {
     try {
-        const res = await fetch(obtenerRutaModel('obtener_sedes.php'));
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const res = await fetch(obtenerRutaModel('obtener_sedes.php'), { headers: attendanceHeaders() });
+        const sedes = await leerJsonSeguro(res, 'sedes');
 
-        const sedes = await res.json();
+        if (sedes && sedes.status === 'error') {
+            throw new Error(sedes.message || 'No se pudieron cargar las sedes');
+        }
+
         if (!Array.isArray(sedes) || !selectSede) return;
 
         sedes.forEach((sede) => {
@@ -55,9 +126,62 @@ async function cargarSedes() {
             selectSede.appendChild(option);
         });
     } catch (error) {
-        console.error('Error al cargar sedes:', normalizarError(error));
+        const errorNormalizado = normalizarError(error);
+        console.error('Error al cargar sedes:', errorNormalizado);
+        throw errorNormalizado;
     }
 }
+
+async function cargarBaseFacial() {
+    const res = await fetch(obtenerRutaModel('obtener_empleados_fotos.php'), { headers: attendanceHeaders() });
+    const respuestaEmpleados = await leerJsonSeguro(res, 'empleados con rostros');
+
+    if (respuestaEmpleados && respuestaEmpleados.error) {
+        throw new Error(respuestaEmpleados.error);
+    }
+
+    const empleados = Array.isArray(respuestaEmpleados) ? respuestaEmpleados : [];
+    const labeledDescriptors = empleados.map((emp) => {
+        try {
+            const desc = typeof emp.rostro_embedding === 'string'
+                ? JSON.parse(emp.rostro_embedding)
+                : emp.rostro_embedding;
+
+            if (!Array.isArray(desc) || desc.length !== 128) return null;
+            return new faceapi.LabeledFaceDescriptors(emp.id.toString(), [new Float32Array(desc)]);
+        } catch {
+            return null;
+        }
+    }).filter((descriptor) => descriptor !== null);
+
+    if (labeledDescriptors.length === 0) {
+        faceMatcher = null;
+        throw new Error('No hay rostros válidos cargados. Registre empleados con descriptor facial primero.');
+    }
+
+    faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+    console.log(`Base de datos de rostros lista con ${labeledDescriptors.length} empleados.`);
+    return labeledDescriptors.length;
+}
+
+window.refrescarBaseFacial = async () => {
+    if (statusDiv) {
+        statusDiv.innerHTML = estadoHtml('info', 'Actualizando base facial...', 'Un momento mientras se cargan los rostros registrados.');
+    }
+
+    try {
+        const total = await cargarBaseFacial();
+        sistemaListo = true;
+        if (statusDiv) {
+            statusDiv.innerHTML = estadoHtml('success', 'Base facial actualizada', `${total} rostros disponibles para reconocimiento.`);
+        }
+    } catch (error) {
+        const errorNormalizado = normalizarError(error);
+        if (statusDiv) {
+            statusDiv.innerHTML = estadoHtml('warning', 'No se pudo actualizar la base facial', errorNormalizado.message, "<a class='btn btn-sm btn-outline-primary' href='views/empleados_sin_rostro.php'>Ver empleados sin rostro</a>");
+        }
+    }
+};
 
 async function iniciarSistema() {
     console.log('--- INICIANDO SISTEMA DE ASISTENCIA FACIAL ---');
@@ -66,10 +190,6 @@ async function iniciarSistema() {
         console.error('Faltan elementos criticos: video o canvas no encontrados.');
         return;
     }
-
-    iniciarCamara().catch((err) => {
-        console.error('Fallo inicial de camara:', normalizarError(err));
-    });
 
     try {
         if (!statusDiv) {
@@ -117,41 +237,10 @@ async function iniciarSistema() {
         console.log('Todos los modelos de IA estan listos.');
         console.log('Obteniendo base de datos de rostros...');
 
-        const res = await fetch(obtenerRutaModel('obtener_empleados_fotos.php'));
-        if (!res.ok) throw new Error(`Error HTTP al obtener empleados: ${res.status}`);
+        await cargarBaseFacial();
 
-        const textoBruto = await res.text();
-        let empleados = [];
-        const indiceJson = textoBruto.indexOf('[');
-
-        if (indiceJson !== -1) {
-            try {
-                empleados = JSON.parse(textoBruto.substring(indiceJson));
-            } catch (error) {
-                console.error('Error al procesar JSON de empleados:', normalizarError(error));
-            }
-        }
-
-        if (empleados.length > 0) {
-            const labeledDescriptors = empleados.map((emp) => {
-                try {
-                    const desc = typeof emp.rostro_embedding === 'string'
-                        ? JSON.parse(emp.rostro_embedding)
-                        : emp.rostro_embedding;
-
-                    return new faceapi.LabeledFaceDescriptors(emp.id.toString(), [new Float32Array(desc)]);
-                } catch {
-                    return null;
-                }
-            }).filter((descriptor) => descriptor !== null);
-
-            if (labeledDescriptors.length === 0) {
-                console.warn('No se encontraron descriptores validos en la base de datos.');
-            } else {
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-                console.log(`Base de datos de rostros lista con ${labeledDescriptors.length} empleados.`);
-            }
-        }
+        sistemaListo = true;
+        await iniciarCamara();
     } catch (error) {
         const errorNormalizado = normalizarError(error, 'Error critico en el sistema');
         console.error('Fallo critico en el sistema:', errorNormalizado);
@@ -161,8 +250,10 @@ async function iniciarSistema() {
                 <strong><i class='bi bi-exclamation-triangle-fill'></i> Error de Sistema:</strong><br>
                 ${errorNormalizado.message}<br>
                 <button class='btn btn-sm btn-outline-danger mt-2' onclick='location.reload()'>Reintentar</button>
+                <a class='btn btn-sm btn-outline-primary mt-2 ms-1' href='views/empleados_sin_rostro.php'>Ver pendientes</a>
             </div>`;
         }
+        detenerReconocimiento();
     }
 }
 
@@ -189,6 +280,10 @@ async function iniciarCamara() {
 
         const iniciarVideo = async () => {
             if (reconocimientoActivo) return;
+            if (!sistemaListo) {
+                console.warn('La camara esta lista, pero el reconocimiento espera a que la IA y la base de datos carguen.');
+                return;
+            }
 
             console.log('Metadatos de video cargados. Iniciando reproduccion...');
             await video.play();
@@ -210,21 +305,22 @@ async function iniciarCamara() {
         const errorNormalizado = normalizarError(error, 'Error: Camara no disponible');
         console.error('ERROR CRITICO DE CAMARA:', errorNormalizado);
 
-        let msg = 'Error: Camara no disponible';
-        if (errorNormalizado.name === 'NotAllowedError') {
-            msg = 'Permiso denegado para usar la camara';
-        } else if (errorNormalizado.name === 'NotFoundError') {
-            msg = 'No se encontro ninguna camara conectada';
-        } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-            msg = 'La camara requiere una conexion segura (HTTPS)';
-        } else if (errorNormalizado.message) {
-            msg = errorNormalizado.message;
-        }
-
-        if (statusDiv) {
-            statusDiv.innerHTML = `<span class='badge bg-danger p-2'><i class='bi bi-camera-video-off'></i> ${msg}</span>`;
-        }
+        mostrarErrorCamara(errorNormalizado);
     }
+}
+
+function detenerReconocimiento() {
+    sistemaListo = false;
+    reconocimientoActivo = false;
+
+    if (recognitionIntervalId) {
+        clearInterval(recognitionIntervalId);
+        recognitionIntervalId = null;
+    }
+
+    idEmpleadoDetectado = null;
+    descriptorDetectado = null;
+    actualizarEstadoBotones(false);
 }
 
 function actualizarEstadoBotones(identificado) {
@@ -283,22 +379,31 @@ function reconocimientoContinuo() {
 
                     if (match.label !== 'unknown') {
                         idEmpleadoDetectado = match.label;
+                        descriptorDetectado = Array.from(detection.descriptor);
+                        const distancia = Number(match.distance || 0);
+                        const confianza = Math.max(0, Math.min(100, Math.round((1 - (distancia / 0.6)) * 100)));
 
                         if (isLive) {
-                            statusDiv.innerHTML = `<span class='badge bg-success p-2 shadow-sm pulse-green'><i class='bi bi-patch-check-fill'></i> Humano Detectado - ID: ${idEmpleadoDetectado}</span>`;
+                            statusDiv.innerHTML = estadoHtml(
+                                'success',
+                                `Rostro reconocido - ID ${idEmpleadoDetectado}`,
+                                `Confianza aproximada: ${confianza}% | Distancia facial: ${distancia.toFixed(3)}`
+                            );
                             actualizarEstadoBotones(true);
                         } else {
-                            statusDiv.innerHTML = "<span class='badge bg-danger p-2'><i class='bi bi-exclamation-triangle'></i> Posible foto detectada</span>";
+                            statusDiv.innerHTML = estadoHtml('warning', 'Posible foto detectada', 'Parpadee o mueva ligeramente el rostro frente a la cámara.');
                             actualizarEstadoBotones(false);
                         }
                     } else {
                         idEmpleadoDetectado = null;
-                        statusDiv.innerHTML = "<span class='badge bg-secondary p-2'>Rostro no reconocido</span>";
+                        descriptorDetectado = null;
+                        statusDiv.innerHTML = estadoHtml('warning', 'Rostro no reconocido', 'Si el colaborador ya fue registrado, pulse “Actualizar rostros”.');
                         actualizarEstadoBotones(false);
                     }
                 }
             } else {
-                statusDiv.innerHTML = "<span class='badge bg-warning text-dark p-2'>Buscando rostro...</span>";
+                descriptorDetectado = null;
+                statusDiv.innerHTML = estadoHtml('info', 'Buscando rostro...', 'Ubíquese de frente, con buena luz y sin cubrir el rostro.');
                 actualizarEstadoBotones(false);
             }
         } catch (error) {
@@ -314,34 +419,56 @@ if (selectSede) {
 }
 
 async function procesarAsistencia(tipo) {
-    if (!idEmpleadoDetectado || !selectSede || selectSede.value === '') return;
+    if (!idEmpleadoDetectado || !descriptorDetectado || !selectSede || selectSede.value === '') return;
+    if (registroEnProceso) return;
+
+    const ahora = Date.now();
+    if (ahora - ultimoRegistroTs < 5000) {
+        UIFeedback.warning('Espere un momento', 'Ya se está procesando una marcación reciente.');
+        return;
+    }
 
     const btnActual = (tipo === 'entrada') ? btnMarcar : btnSalida;
-    if (btnActual) btnActual.disabled = true;
+    registroEnProceso = true;
+    ultimoRegistroTs = ahora;
+    if (btnActual) {
+        btnActual.disabled = true;
+        btnActual.dataset.originalText = btnActual.innerHTML;
+        btnActual.innerHTML = "<span class='spinner-border spinner-border-sm me-1'></span> Procesando...";
+    }
+    if (btnMarcar) btnMarcar.disabled = true;
+    if (btnSalida) btnSalida.disabled = true;
 
     const formData = new FormData();
     formData.append('id_empleado', idEmpleadoDetectado);
     formData.append('tipo_registro', tipo);
     formData.append('id_distrito', selectSede.value);
+    formData.append('descriptor', JSON.stringify(descriptorDetectado));
+    formData.append('attendance_token', (typeof ATTENDANCE_TOKEN !== 'undefined') ? ATTENDANCE_TOKEN : '');
 
     try {
         const response = await fetch(obtenerRutaModel('registrar_asistencia.php'), {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: attendanceHeaders()
         });
 
-        const data = await response.json();
+        const data = await leerJsonSeguro(response, 'registro de asistencia');
 
-        Swal.fire({
-            icon: data.status === 'success' ? 'success' : 'error',
-            title: data.message,
-            timer: 3000
-        });
+        if (data.status === 'success') {
+            UIFeedback.success(data.message, { timer: 3000 });
+        } else {
+            UIFeedback.error('No se pudo registrar', data.message);
+        }
     } catch (error) {
         console.error('Error al registrar asistencia:', normalizarError(error));
-        Swal.fire('Error', 'Fallo en la comunicacion', 'error');
+        UIFeedback.error('Error', 'Fallo en la comunicacion');
     } finally {
-        if (btnActual) btnActual.disabled = false;
+        registroEnProceso = false;
+        if (btnActual && btnActual.dataset.originalText) {
+            btnActual.innerHTML = btnActual.dataset.originalText;
+        }
+        actualizarEstadoBotones(idEmpleadoDetectado !== null);
     }
 }
 
@@ -350,6 +477,7 @@ if (btnSalida) btnSalida.addEventListener('click', () => procesarAsistencia('sal
 
 window.addEventListener('unhandledrejection', (event) => {
     console.error('Promesa no controlada en camara.js:', normalizarError(event.reason, 'Promesa rechazada sin detalle'));
+    event.preventDefault();
 });
 
 iniciarSistema().catch((err) => {
