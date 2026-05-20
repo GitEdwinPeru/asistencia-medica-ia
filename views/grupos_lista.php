@@ -1,11 +1,11 @@
 <?php
 require_once '../config/auth.php';
-restringirSoloAdmin();
+requerirPermiso('catalogos');
 require_once '../config/db.php';
 
 // Consulta para obtener grupos y contar sus integrantes activos
 $sql = "SELECT g.*, (SELECT COUNT(*) FROM empleado e WHERE e.id_grupo = g.pk_id_grupo AND e.esta_empl = 1) as total 
-        FROM grupo g ORDER BY nomb_grup ASC";
+        FROM grupo g WHERE g.esta_grup = 1 ORDER BY nomb_grup ASC";
 $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -16,6 +16,7 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/ui_common.css">
     <style>
         body { background-color: #f8f9fa; font-family: 'Inter', sans-serif; }
         .nav-pill-custom { background: white; border: 1px solid #dee2e6; border-radius: 50px; padding: 5px; }
@@ -66,6 +67,17 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                         </tr>
                     </thead>
                     <tbody>
+                        <?php if (empty($grupos)): ?>
+                        <tr>
+                            <td colspan="3" class="text-center py-5">
+                                <div class="mx-auto mb-3 bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                                    <i class="bi bi-people text-muted fs-4"></i>
+                                </div>
+                                <div class="fw-bold text-dark">No hay grupos registrados</div>
+                                <div class="text-muted small">Crea un grupo para organizar equipos o areas de trabajo.</div>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
                         <?php foreach($grupos as $g): ?>
                         <tr>
                             <td class="ps-4">
@@ -85,13 +97,15 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 me-1 btn-edit" 
+                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 me-1 btn-edit btn-icon" 
                                         data-id="<?= $g['pk_id_grupo'] ?>" 
                                         data-nombre="<?= htmlspecialchars($g['nomb_grup']) ?>"
-                                        data-bs-toggle="modal" data-bs-target="#modalEditarGrupo">
+                                        data-bs-toggle="modal" data-bs-target="#modalEditarGrupo"
+                                        title="Editar grupo" aria-label="Editar grupo">
                                     <i class="bi bi-pencil text-primary"></i>
                                 </button>
-                                <button class="btn btn-sm btn-white border shadow-sm rounded-3" 
+                                <button class="btn btn-sm btn-white border shadow-sm rounded-3 btn-icon" 
+                                        data-bs-toggle="tooltip" title="Desactivar grupo" aria-label="Desactivar grupo"
                                         onclick="confirmarEliminar(<?= $g['pk_id_grupo'] ?>, '<?= htmlspecialchars($g['nomb_grup']) ?>')">
                                     <i class="bi bi-trash text-danger"></i>
                                 </button>
@@ -118,6 +132,7 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="../models/guardar_grupo.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Nombre del Grupo</label>
@@ -141,6 +156,7 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="../models/editar_grupo.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= generarTokenCSRF() ?>">
                     <div class="modal-body">
                         <input type="hidden" name="id_grupo" id="edit_id_grupo">
                         <div class="mb-3">
@@ -159,21 +175,31 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/ui_feedback.js"></script>
+    <script src="../assets/js/ui_accessibility.js"></script>
     <script>
-        // Manejo de notificaciones
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('msj')) {
-            const msj = urlParams.get('msj');
-            if (msj === 'registrado') {
-                Swal.fire('¡Éxito!', 'El grupo ha sido registrado correctamente.', 'success');
-            } else if (msj === 'editado') {
-                Swal.fire('¡Éxito!', 'El grupo ha sido actualizado correctamente.', 'success');
-            } else if (msj === 'error') {
-                Swal.fire('Error', 'Hubo un problema al procesar la solicitud.', 'error');
-            }
-            // Limpiar URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+        function postAction(url, fields = {}) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            Object.entries({ csrf_token: '<?= generarTokenCSRF() ?>', ...fields }).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            form.submit();
         }
+
+        UIFeedback.fromQuery({
+            registrado: { icon: 'success', title: 'Grupo registrado' },
+            editado: { icon: 'success', title: 'Grupo actualizado' },
+            eliminado: { icon: 'success', title: 'Grupo desactivado' },
+            error_integridad: { icon: 'error', title: 'Grupo en uso', text: 'Reasigna o desactiva primero al personal vinculado.' },
+            error: { icon: 'error', title: 'No se pudo procesar la solicitud' }
+        });
 
         const modalEditar = document.getElementById('modalEditarGrupo');
         if (modalEditar) {
@@ -187,17 +213,16 @@ $grupos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         }
 
         function confirmarEliminar(id, nombre) {
-            Swal.fire({
-                title: '¿Eliminar Grupo?',
-                text: `¿Estás seguro de eliminar "${nombre}"?`,
+            UIFeedback.confirm(
+                'Eliminar grupo',
+                `Se desactivara "${nombre}". Si tiene integrantes activos, el sistema bloqueara la accion.`,
+                {
                 icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                confirmButtonText: 'Sí, eliminar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = `../models/eliminar_grupo.php?id=${id}`;
+                confirmButtonText: 'Si, desactivar',
+                cancelButtonText: 'Cancelar'
                 }
+            ).then((result) => {
+                if (result.isConfirmed) postAction('../models/eliminar_grupo.php', { id });
             });
         }
     </script>

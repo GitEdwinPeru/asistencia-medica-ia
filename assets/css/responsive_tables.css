@@ -1,0 +1,34 @@
+.table-responsive {
+    border-radius: 10px;
+}
+
+.table-sticky thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.table-compact th,
+.table-compact td {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .table-compact {
+        font-size: 0.86rem;
+    }
+
+    .table-compact .btn-group {
+        display: inline-flex;
+        flex-wrap: nowrap;
+    }
+
+    .filter-actions {
+        width: 100%;
+    }
+
+    .filter-actions .btn {
+        flex: 1 1 auto;
+    }
+}

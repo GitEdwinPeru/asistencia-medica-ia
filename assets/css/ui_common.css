@@ -1,0 +1,52 @@
+.filter-panel {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+}
+
+.filter-chip {
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+    padding: 0.45rem 0.8rem;
+}
+
+.empty-state {
+    color: #6b7280;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.empty-state-icon {
+    align-items: center;
+    background: #f3f4f6;
+    border-radius: 50%;
+    color: #6b7280;
+    display: inline-flex;
+    height: 56px;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    width: 56px;
+}
+
+.action-buttons .btn,
+.btn-icon {
+    align-items: center;
+    display: inline-flex;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+}
+
+.form-control:focus,
+.form-select:focus,
+.btn:focus-visible {
+    box-shadow: 0 0 0 0.22rem rgba(13, 110, 253, 0.18);
+}
+
+.table-actions {
+    white-space: nowrap;
+}
